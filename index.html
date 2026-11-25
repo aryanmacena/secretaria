@@ -13,7 +13,7 @@ nav{position:sticky;top:0;z-index:5;display:flex;background:#111}nav[hidden]{dis
 .chips{display:flex;gap:6px;overflow-x:auto;margin:8px 0}.chips button{width:auto;white-space:nowrap;background:var(--a);color:var(--b);border:1px solid #555;padding:8px 14px;border-radius:20px}.chips button.on{background:var(--w);color:#111;border-color:var(--w)}
 #mes{flex:3}#ed{position:fixed;inset:0;background:#000d;z-index:20;overflow:auto;padding:14px}#ed[hidden]{display:none}#sair{opacity:.6}
 .e{color:var(--g)}.s2{color:var(--r)}small{opacity:.7}
-</style></head><body><nav id="nav" hidden><button data-a="lancar">Falar</button><button data-a="fin">Financeiro</button><button data-a="lem">Lembretes</button><button id="sair">Sair</button></nav><main>
+</style></head><body><nav id="nav" hidden><button data-a="lancar">Falar</button><button data-a="fin">Financeiro</button><button data-a="lem">Lembretes</button><button data-a="eq">Equipe</button><button id="sair">Sair</button></nav><main>
 <div id="login"><h2>Secretária</h2><input id="pw" type="password" placeholder="Digite sua senha"><button id="entrar">Entrar</button><p id="lerr" class="s2"></p><button class="s" id="prim">🔑 Primeiro acesso / criar minha senha</button><div id="primbox" hidden><select id="quem"><option value="0">Aryan</option><option value="1">Adão</option></select><button id="enviar">Enviar e-mail para criar senha</button></div><button class="s" id="abrecfg">⚙️ Configurar</button></div>
 <div id="nova" hidden><h2>Crie sua senha</h2><input id="np" type="password" placeholder="Nova senha (mín. 6 caracteres)"><button id="salvasenha">Salvar senha</button><p id="nerr" class="s2"></p></div>
 <div id="setup" hidden><h2>Configuração inicial</h2><p><small>No Supabase: Project Settings > API. Cole a URL e a chave anon public.</small></p><input id="su" placeholder="Project URL (https://xxxx.supabase.co)"><input id="sk" placeholder="Chave anon public"><p><small>Crie os usuários (senhas diferentes). Deixe em branco se já existem.</small></p><input id="p1" type="password" placeholder="Senha do Aryan"><input id="p2" type="password" placeholder="Senha do Adão"><button id="cfgbtn">Salvar e criar usuários</button><p id="cerr"></p></div>
@@ -23,12 +23,16 @@ nav{position:sticky;top:0;z-index:5;display:flex;background:#111}nav[hidden]{dis
 <div class="row"><button class="s" id="mic">🎤 Falar</button><button class="s" id="cam">📷 Tirar foto</button><button class="s" id="gal">🖼️ Galeria</button></div><button id="env">Enviar</button>
 <input type="file" id="arq" accept="image/*" hidden><input type="file" id="arq2" accept="image/*" capture="environment" hidden><div id="res" class="box" hidden></div></section>
 <section id="fin" hidden><div class="row"><button class="s" id="mm">‹</button><input type="month" id="mes"><button class="s" id="mp">›</button></div>
-<div id="fsal"></div><div class="chips" id="chips"><button data-v="resumo">Resumo</button><button data-v="entradas">Entradas</button><button data-v="saidas">Saídas</button><button data-v="empresa">Empresa</button><button data-v="casa">Casa</button></div><div id="fout"></div></section>
+<div id="fsal"></div><div class="chips" id="chips"><button data-v="resumo">Resumo</button><button data-v="entradas">Entradas</button><button data-v="saidas">Saídas</button><button data-v="empresa">Empresa</button><button data-v="casa">Casa</button><button data-v="semana">Semana</button><button data-v="ano">Ano</button><button data-v="contador">Contador</button></div><div id="fout"></div></section>
 <section id="lem" hidden><h2>Lembretes</h2>
 <textarea id="lt2" rows="2" placeholder="Ex.: reunião com a Dona Fabíola quarta às 15h  /  a reunião de quinta foi para sexta da semana que vem"></textarea>
 <div class="row"><button class="s" id="mic2">🎤 Falar</button><button id="env2">Anotar</button></div>
 <div id="pst" class="box"></div><button class="s" id="notif">🔔 Ativar avisos neste aparelho</button><button class="s" id="tst">🔊 Testar som e vibração</button><div id="res2" class="box" hidden></div><div id="lout"></div>
 <details><summary>Adicionar manualmente</summary><input id="lt" placeholder="O que lembrar?"><input id="lq" type="datetime-local"><button id="ladd">Salvar lembrete</button></details></section>
+<section id="eq" hidden><h2>Equipe</h2>
+<textarea id="et" rows="2" placeholder="Ex.: Paulo fez 3 horas extras ontem  /  cadastrar funcionário Pablo salário 2500"></textarea>
+<div class="row"><button class="s" id="mic3">🎤 Falar</button><button id="env3">Enviar</button></div><div id="eres" class="box" hidden></div>
+<button class="s" id="fnovo">+ Novo funcionário</button><div id="eout"></div></section>
 </div></main><div id="ed" hidden><div class="box" id="edbox" style="max-width:640px;margin:auto"></div></div>
 
 <script src="config.js"></script>
@@ -47,12 +51,12 @@ async function init(){if(!sb){$('#login').hidden=true;$('#setup').hidden=false;r
  const{data:{session}}=await sb.auth.getSession();
  if(session&&REC){$('#login').hidden=true;$('#app').hidden=true;$('#nav').hidden=true;$('#nova').hidden=false;return}
  $('#login').hidden=!!session;$('#app').hidden=!session;$('#nav').hidden=!session;
- if(session){UID=session.user.id;if('Notification'in window&&Notification.permission=='granted')ativarPush(false).then(statusPush);localStorage.nome=(USERS.find(u=>u.email==session.user.email)||{nome:'Aryan'}).nome;aba('lancar');checar();setInterval(checar,30000)}}
+ if(session){UID=session.user.id;if('Notification'in window&&Notification.permission=='granted')ativarPush(false).then(statusPush);localStorage.nome=(USERS.find(u=>u.email==session.user.email)||{nome:'Aryan'}).nome;aba('lancar');checar();setInterval(checar,30000);setTimeout(auto,1500)}}
 $('#entrar').onclick=async()=>{const pw=$('#pw').value;$('#lerr').textContent='Entrando…';let msg='Senha incorreta.';
  for(const u of USERS){const{error}=await sb.auth.signInWithPassword({email:u.email,password:pw});if(!error){localStorage.nome=u.nome;$('#lerr').textContent='';return init()}if(!/invalid login/i.test(error.message))msg=error.message}
  $('#lerr').textContent=msg};
 $('#pw').onkeydown=e=>{if(e.key=='Enter')$('#entrar').click()};
-function aba(n){document.querySelectorAll('section').forEach(s=>s.hidden=s.id!=n);if(n=='fin')fin();if(n=='lem')lem()}
+function aba(n){document.querySelectorAll('section').forEach(s=>s.hidden=s.id!=n);if(n=='fin')fin();if(n=='lem')lem();if(n=='eq')eq()}
 document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>aba(b.dataset.a));
 $('#mes').onchange=fin;
 function mic(tx,bx,fn){const R=window.SpeechRecognition||window.webkitSpeechRecognition,r=$(bx);r.hidden=false;if(!R){r.textContent='Este navegador não tem ditado por voz. Use o Chrome (Android) ou o Safari (iPhone), ou o microfone do teclado.';return}
@@ -94,10 +98,10 @@ function mostrar(j){pend=j;const r=$('#res');if(j.acao=='pergunta'){const q=/emp
  $('#ok').onclick=salvar}
 async function salvar(){const j=pend;let er;
  if(j.acao=='lembrete')({error:er}=await sb.from('lembretes').insert({titulo:j.titulo,quando:j.quando,aviso:j.quando}));
- else{const{acao,pergunta,titulo,quando,hora,...l}=j;const sem=t=>String(t||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim();
+ else{const{acao,pergunta,titulo,quando,hora,funcionario,...l}=j;const sem=t=>String(t||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim();
  l.tipo=/entr/.test(sem(l.tipo))?'entrada':'saida';l.escopo=/casa|pess/.test(sem(l.escopo))?'casa':'empresa';l.forma=sem(l.forma);l.valor=Number(String(l.valor).replace(',','.'))||0;
  if(!/^\d{4}-\d{2}-\d{2}$/.test(l.data||''))l.data=new Date(Date.now()-3*36e5).toISOString().slice(0,10);
- l.nota=foto;$('#mes').value=l.data.slice(0,7);({error:er}=await sb.from('lancamentos').insert(l))}
+ l.nota=foto;if(funcionario||l.categoria=='funcionarios'){try{await carregaEq();const f=achaF(funcionario||l.loja||'');if(f){l.func_id=f.id;l.loja=f.nome}}catch(e){}}$('#mes').value=l.data.slice(0,7);({error:er}=await sb.from('lancamentos').insert(l))}
  if(er)return alert(er.message);$('#res').textContent='Salvo ✔ Veja na aba Financeiro.';$('#txt').value='';foto=fotoB64=null;pend=null}
 let FD=[],VW='resumo';
 const esc=t=>String(t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
@@ -109,6 +113,9 @@ function por(L,k){const o={};L.forEach(x=>o[x[k]||'—']=(o[x[k]||'—']||0)+Num
 function vista(){document.querySelectorAll('#chips button').forEach(b=>b.classList.toggle('on',b.dataset.v==VW));
  const en=FD.filter(x=>x.tipo=='entrada'),sa=FD.filter(x=>x.tipo=='saida'),sd=sum(en)-sum(sa);
  $('#fsal').innerHTML=`<div class="box"><small>Saldo do mês</small><div class="big ${sd>=0?'e':'s2'}">${brl(sd)}</div><div class="row"><div><small>Entradas</small><br><b class="e">${brl(sum(en))}</b></div><div><small>Saídas</small><br><b class="s2">${brl(sum(sa))}</b></div></div></div>`;
+ const emp=FD.filter(x=>x.escopo=='empresa'),cx=sum(emp.filter(x=>x.tipo=='entrada'))-sum(emp.filter(x=>x.tipo=='saida'));
+ $('#fsal').innerHTML=$('#fsal').innerHTML.replace(/<\/div><\/div>$/,`</div><div class="ln"><span>Caixa da empresa</span><b class="${cx>=0?'e':'s2'}">${cx>=0?'🟢 no verde':'🔴 no vermelho'} ${brl(cx)}</b></div></div>`);
+ if(['semana','ano','contador'].includes(VW))return especial();
  let L=FD,h='';
  if(VW=='resumo'){for(const k of['empresa','casa']){const l=FD.filter(x=>x.escopo==k),e=sum(l.filter(x=>x.tipo=='entrada')),sx=sum(l.filter(x=>x.tipo=='saida'));
    h+=`<div class="box"><b>${k=='empresa'?'Empresa':'Casa / pessoal'}</b><div class="ln"><span>Entrou</span><b class="e">${brl(e)}</b></div><div class="ln"><span>Saiu</span><b class="s2">${brl(sx)}</b></div><div class="ln"><span>Saldo</span><b>${brl(e-sx)}</b></div></div>`}
@@ -118,14 +125,14 @@ function vista(){document.querySelectorAll('#chips button').forEach(b=>b.classLi
   h+=`<div class="box"><b>${T}</b>${VW!='saidas'?`<div class="ln"><span>Entrou</span><b class="e">${brl(sum(ee))}</b></div>`:''}${VW!='entradas'?`<div class="ln"><span>Saiu</span><b class="s2">${brl(sum(ss))}</b></div>`:''}</div>
   <div class="box"><b>Por forma de pagamento</b>${por(L,'forma')}</div><div class="box"><b>Por categoria</b>${por(L,'categoria')}</div><div class="box"><b>Por pessoa</b>${por(L,'pessoa')}</div><h3>Lançamentos</h3>`}
  h+=L.length?L.map(card).join(''):'<p><small>Nenhum lançamento aqui neste mês.</small></p>';$('#fout').innerHTML=h}
-function card(x){return `<div class="box"><div class="ln"><b class="${x.tipo=='entrada'?'e':'s2'}">${x.tipo=='entrada'?'+':'−'} ${brl(x.valor)}</b><small>${(x.data||'').split('-').reverse().join('/')}</small></div>${esc(x.loja||x.descricao||'Sem descrição')}<br><small>${x.escopo=='casa'?'Casa':'Empresa'} · ${esc(x.categoria||'—')} · ${esc(x.forma||'—')} · ${esc(x.pessoa||'—')}</small><div class="row"><button class="s" onclick="edit('${x.id}')">Editar</button><button class="s" onclick="del('${x.id}')">Apagar</button></div></div>`}
+function card(x){return `<div class="box"><div class="ln"><b class="${x.tipo=='entrada'?'e':'s2'}">${x.tipo=='entrada'?'+':'−'} ${brl(x.valor)}</b><small>${(x.data||'').split('-').reverse().join('/')}</small></div>${esc(x.loja||x.descricao||'Sem descrição')}${x.nota?` <a href="#" onclick="verNota('${x.nota}');return false">📎 ver nota</a>`:''}<br><small>${x.escopo=='casa'?'Casa':'Empresa'} · ${esc(x.categoria||'—')} · ${esc(x.forma||'—')} · ${esc(x.pessoa||'—')}</small><div class="row"><button class="s" onclick="edit('${x.id}')">Editar</button><button class="s" onclick="del('${x.id}')">Apagar</button></div></div>`}
 function edit(id){const x=FD.find(v=>v.id==id);if(!x)return;
  $('#edbox').innerHTML=`<h3>Editar lançamento</h3><select id="e_tipo"><option value="entrada">Entrada</option><option value="saida">Saída</option></select><input id="e_valor" type="number" step="0.01" value="${x.valor}"><select id="e_escopo"><option value="empresa">Empresa</option><option value="casa">Casa / pessoal</option></select><input id="e_loja" placeholder="Loja / cliente" value="${esc(x.loja||'')}"><input id="e_cat" placeholder="Categoria" value="${esc(x.categoria||'')}"><input id="e_forma" list="fl" placeholder="Forma de pagamento" value="${esc(x.forma||'')}"><datalist id="fl"><option value="pix"><option value="debito"><option value="credito"><option value="dinheiro"><option value="boleto"></datalist><input id="e_pessoa" placeholder="Pessoa" value="${esc(x.pessoa||'')}"><input id="e_data" type="date" value="${x.data||''}"><input id="e_desc" placeholder="Descrição" value="${esc(x.descricao||'')}"><div class="row"><button class="s" onclick="$('#ed').hidden=true">Cancelar</button><button onclick="salvaed('${id}')">Salvar</button></div>`;
  $('#e_tipo').value=x.tipo;$('#e_escopo').value=x.escopo;$('#ed').hidden=false}
 async function salvaed(id){const g=k=>$('#e_'+k).value;const{error}=await sb.from('lancamentos').update({tipo:g('tipo'),valor:Number(g('valor'))||0,escopo:g('escopo'),loja:g('loja'),categoria:g('cat'),forma:g('forma').toLowerCase(),pessoa:g('pessoa'),data:g('data'),descricao:g('desc')}).eq('id',id);if(error)return alert(error.message);$('#ed').hidden=true;fin()}
 async function del(id){if(!confirm('Apagar este lançamento?'))return;const{error}=await sb.from('lancamentos').delete().eq('id',id);error?alert(error.message):fin()}
 function mover(n){const d=new Date($('#mes').value+'-01T12:00');d.setMonth(d.getMonth()+n);$('#mes').value=d.toISOString().slice(0,7);fin()}
-document.querySelectorAll('#chips button').forEach(b=>b.onclick=()=>{VW=b.dataset.v;vista()});
+document.querySelectorAll('#chips button').forEach(b=>b.onclick=()=>{VW=b.dataset.v;fin()});
 $('#mm').onclick=()=>mover(-1);$('#mp').onclick=()=>mover(1);
 $('#sair').onclick=async()=>{await sb.auth.signOut();localStorage.removeItem('nome');location.reload()};
 let LS=[];
@@ -148,7 +155,7 @@ function edl(id){const x=LS.find(v=>v.id==id);if(!x)return;const loc=q=>{const d
  $('#edbox').innerHTML=`<h3>Editar lembrete</h3><input id="l_t" value="${esc(x.titulo)}"><textarea id="l_d" rows="3" placeholder="Detalhes">${esc(x.detalhes||'')}</textarea><input id="l_q" type="datetime-local" value="${loc(x.quando)}"><select id="l_a"><option value="0">Avisar na hora</option><option value="15">15 min antes</option><option value="30">30 min antes</option><option value="60">1 hora antes</option><option value="1440">1 dia antes</option></select><div class="row"><button class="s" onclick="$('#ed').hidden=true">Cancelar</button><button onclick="salvaL('${id}')">Salvar</button></div>`;
  $('#l_a').value=String(Math.round((new Date(x.quando)-new Date(x.aviso||x.quando))/6e4));$('#ed').hidden=false}
 async function salvaL(id){const q=new Date($('#l_q').value),m=Number($('#l_a').value)||0;const{error}=await sb.from('lembretes').update({titulo:$('#l_t').value,detalhes:$('#l_d').value,quando:q.toISOString(),aviso:new Date(q-m*6e4).toISOString(),avisado:false}).eq('id',id);if(error)return alert(error.message);$('#ed').hidden=true;lem()}
-async function delL(id){if(!confirm('Apagar este lembrete?'))return;await sb.from('lembretes').delete().eq('id',id);lem()}
+async function delL(id){if(!confirm('Apagar este lembrete?'))return;const x=LS.find(v=>v.id==id);await(x&&x.chave?sb.from('lembretes').update({feito:true}).eq('id',id):sb.from('lembretes').delete().eq('id',id));lem()}
 async function feito(id){await sb.from('lembretes').update({feito:true}).eq('id',id);lem()}
 function ics(id){const x=LS.find(v=>v.id==id);if(!x)return;const z=q=>new Date(q).toISOString().replace(/[-:]/g,'').slice(0,15)+'Z';
  const t=['BEGIN:VCALENDAR','VERSION:2.0','BEGIN:VEVENT','UID:'+x.id+'@secretaria','DTSTAMP:'+z(Date.now()),'DTSTART:'+z(x.quando),'DTEND:'+z(new Date(x.quando).getTime()+36e5),'SUMMARY:'+x.titulo,'DESCRIPTION:'+(x.detalhes||''),'BEGIN:VALARM','TRIGGER:-PT30M','ACTION:DISPLAY','DESCRIPTION:'+x.titulo,'END:VALARM','END:VEVENT','END:VCALENDAR'].join('\r\n');
@@ -158,6 +165,111 @@ async function checar(){if(!UID||PUSH_OK)return;const{data=[]}=await sb.from('le
  for(const x of data){await sb.from('lembretes').update({avisado:true}).eq('id',x.id);chime();vibra();const t='🔔 '+x.titulo,c=fq(x.quando)+(x.detalhes?' · '+x.detalhes:'');let ok=false;
   try{const reg='serviceWorker'in navigator&&await navigator.serviceWorker.getRegistration();if(reg&&Notification.permission=='granted'){await reg.showNotification(t,{body:c,tag:'l'+x.id,vibrate:[200,100,200,100,400]});ok=true}}catch(e){}
   if(!ok)alert(t+'\n'+c)}}
+//#PURE
+const r2=v=>Math.round(v*100)/100;
+const norm=t=>String(t||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().trim();
+const hoje=()=>new Date(Date.now()-3*36e5).toISOString().slice(0,10);
+const addD=(s,n)=>{const d=new Date(s+'T12:00:00Z');d.setUTCDate(d.getUTCDate()+n);return d.toISOString().slice(0,10)};
+const addM=(s,n)=>{const d=new Date(s+'T12:00:00Z');d.setUTCMonth(d.getUTCMonth()+n);return d.toISOString().slice(0,10)};
+const fimMes=ym=>{const[a,m]=ym.split('-').map(Number);return ym+'-'+String(new Date(a,m,0).getDate()).padStart(2,'0')};
+const at=(d,h)=>new Date(d+'T'+h+':00-03:00').toISOString();
+const dBR=d=>String(d||'').split('-').reverse().join('/');
+const calcHE=(sal,h,pct)=>r2(Number(sal)/220*(1+Number(pct)/100)*Number(h));
+function meses13(adm,ano){let ini=1;if(adm){const[a,m,d]=adm.split('-').map(Number);if(a>ano)return 0;if(a==ano){const dm=new Date(a,m,0).getDate();ini=m+((dm-d+1)>=15?0:1)}}return Math.max(0,Math.min(12,13-ini))}
+function d13(f,ano){const meses=meses13(f.admissao,ano),total=r2(Number(f.salario)*meses/12),p1=r2(total/2);return{meses,total,p1,p2:r2(total-p1)}}
+function ferias(f){const base=f.ult_ferias||f.admissao;if(!base)return null;const due=addM(base,12);return{due,valor:r2(Number(f.salario)*4/3),atras:due<hoje()}}
+//#/PURE
+let FU=[],PG=[],HE=[],OP=[],pendE=null;
+const achaF=n=>{const k=norm(n);return FU.find(f=>norm(f.nome)==k)||FU.find(f=>norm(f.nome).includes(k)||k.includes(norm(f.nome)))};
+async function todos(q){let o=[],i=0;for(;;){const{data,error}=await q().range(i,i+999);if(error)throw error;o=o.concat(data||[]);if(!data||data.length<1000)return o;i+=1000}}
+async function carregaEq(){const a=hoje().slice(0,4);
+ const[f,h,p]=await Promise.all([sb.from('funcionarios').select('*').eq('ativo',true).order('nome'),sb.from('horas_extras').select('*').eq('pago',false).order('data'),sb.from('lancamentos').select('*').not('func_id','is',null).gte('data',a+'-01-01').order('data',{ascending:false})]);
+ if(f.error)throw f.error;if(h.error)throw h.error;if(p.error)throw p.error;FU=f.data||[];HE=h.data||[];PG=p.data||[]}
+async function eq(){const o=$('#eout');o.textContent='Carregando…';
+ try{await carregaEq()}catch(e){o.innerHTML='Erro: '+esc(e.message)+'<br><small>Se disser que a tabela não existe, falta rodar o atualizar.sql no Supabase.</small>';return}
+ o.innerHTML=`<div class="box"><small>Folha mensal (salários)</small><div class="big">${brl(sum(FU.map(f=>({valor:f.salario}))))}</div><small>Horas extras pendentes: ${brl(sum(HE))}</small></div>`+(FU.length?FU.map(cardF).join(''):'<p><small>Nenhum funcionário ainda. Toque em "Novo funcionário".</small></p>')}
+function cardF(f){const H=hoje(),ym=H.slice(0,7),ano=H.slice(0,4),sal=Number(f.salario),he=HE.filter(h=>h.func_id==f.id),hv=sum(he),hh=he.reduce((t,h)=>t+Number(h.horas),0),pg=r=>PG.find(p=>p.func_id==f.id&&p.ref==r),ok=r=>pg(r)?' ✅ pago':'',t=d13(f,+ano),fe=ferias(f),hist=PG.filter(p=>p.func_id==f.id);
+ return `<div class="box"><div class="ln"><b>${esc(f.nome)}</b><b>${brl(sal)}</b></div><small>${f.admissao?'Admissão '+dBR(f.admissao):'Sem data de admissão'}</small>
+ <div class="ln"><span>1ª quinzena (dia 15)${ok('q1-'+ym)}</span><span>${brl(sal/2)}</span></div>
+ <div class="ln"><span>2ª quinzena (fim do mês)${ok('q2-'+ym)}</span><span>${brl(sal/2)}</span></div>
+ <div class="ln"><span>Horas extras pendentes (${hh.toLocaleString('pt-BR')} h)</span><b>${brl(hv)}</b></div>
+ <div class="ln"><span>13º ${ano} · 1ª parcela (até 30/11)${ok('d1-'+ano)}</span><span>${brl(t.p1)}</span></div>
+ <div class="ln"><span>13º ${ano} · 2ª parcela (até 20/12)${ok('d2-'+ano)}</span><span>${brl(t.p2)}</span></div>
+ <div class="ln"><span>${fe?(fe.atras?'🔴 Férias vencidas desde '+dBR(fe.due):'Férias vencem em '+dBR(fe.due)):'Férias: informe a admissão'}</span><span>${fe?brl(fe.valor):''}</span></div>
+ <div class="row"><button onclick="pagar('${f.id}')">Pagar</button><button class="s" onclick="horaE('${f.id}')">+ Hora extra</button><button class="s" onclick="editF('${f.id}')">Editar</button></div>
+ <details><summary><small>Pagamentos de ${ano}</small></summary>${hist.length?hist.map(p=>`<div class="ln"><span><small>${dBR(p.data)} · ${esc(p.descricao||'')}</small></span><span>${brl(p.valor)}</span></div>`).join(''):'<small>Nenhum ainda.</small>'}${he.map(h=>`<div class="ln"><span><small>${dBR(h.data)} · hora extra ${h.horas}h (${h.pct}%) pendente</small></span><span>${brl(h.valor)} <a href="#" onclick="delHE('${h.id}');return false">🗑</a></span></div>`).join('')}</details></div>`}
+async function delHE(id){if(!confirm('Apagar esta hora extra?'))return;await sb.from('horas_extras').delete().eq('id',id);eq()}
+function pagar(id){const f=FU.find(x=>x.id==id),H=hoje(),ym=H.slice(0,7),ano=H.slice(0,4),sal=Number(f.salario),hv=sum(HE.filter(h=>h.func_id==id)),t=d13(f,+ano);
+ OP=[{k:'q1-'+ym,n:'1ª quinzena',v:r2(sal/2)},{k:'q2-'+ym,n:'2ª quinzena + horas extras pendentes',v:r2(sal/2+hv),he:1},{k:'he-'+H,n:'Horas extras',v:hv,he:1},{k:'d1-'+ano,n:'13º salário – 1ª parcela',v:t.p1},{k:'d2-'+ano,n:'13º salário – 2ª parcela',v:t.p2},{k:'f-'+ano,n:'Férias (+1/3)',v:r2(sal*4/3),fer:1},{k:'outro-'+Date.now(),n:'Outro pagamento',v:0}];
+ $('#edbox').innerHTML=`<h3>Pagar ${esc(f.nome)}</h3><select id="p_t">${OP.map((o,i)=>`<option value="${i}">${o.n}</option>`).join('')}</select><input id="p_v" type="number" step="0.01"><select id="p_f"><option value="pix">Pix</option><option value="dinheiro">Dinheiro</option><option value="debito">Débito</option><option value="boleto">Boleto</option></select><input id="p_d" type="date" value="${H}"><div class="row"><button class="s" onclick="$('#ed').hidden=true">Cancelar</button><button onclick="salvaP('${id}')">Registrar saída</button></div>`;
+ const pre=()=>$('#p_v').value=OP[$('#p_t').value].v;$('#p_t').onchange=pre;pre();$('#ed').hidden=false}
+async function salvaP(id){const f=FU.find(x=>x.id==id),o=OP[$('#p_t').value],v=Number($('#p_v').value)||0,d=$('#p_d').value||hoje();if(v<=0)return alert('Informe o valor.');
+ if(PG.find(p=>p.func_id==id&&p.ref==o.k)&&!confirm('Já existe um pagamento registrado para isso. Registrar de novo?'))return;
+ const{error}=await sb.from('lancamentos').insert({tipo:'saida',valor:v,escopo:'empresa',categoria:'funcionarios',descricao:o.n+' – '+f.nome,loja:f.nome,forma:$('#p_f').value,pessoa:localStorage.nome||'',data:d,func_id:id,ref:o.k});if(error)return alert(error.message);
+ if(o.he)await sb.from('horas_extras').update({pago:true}).eq('func_id',id).eq('pago',false);
+ if(o.fer)await sb.from('funcionarios').update({ult_ferias:d}).eq('id',id);
+ $('#ed').hidden=true;eq()}
+function horaE(id){const f=FU.find(x=>x.id==id);
+ $('#edbox').innerHTML=`<h3>Hora extra – ${esc(f.nome)}</h3><input id="h_h" type="number" step="0.25" placeholder="Horas (ex.: 2.5)"><select id="h_p"><option value="50">50% (dia útil / sábado)</option><option value="100">100% (domingo / feriado)</option></select><input id="h_d" type="date" value="${hoje()}"><p id="h_c"></p><div class="row"><button class="s" onclick="$('#ed').hidden=true">Cancelar</button><button onclick="salvaHE('${id}')">Salvar</button></div>`;
+ const c=()=>$('#h_c').textContent='Valor: '+brl(calcHE(f.salario,$('#h_h').value||0,$('#h_p').value));$('#h_h').oninput=c;$('#h_p').onchange=c;c();$('#ed').hidden=false}
+async function salvaHE(id){const f=FU.find(x=>x.id==id),h=Number($('#h_h').value);if(!(h>0))return alert('Informe as horas.');const p=Number($('#h_p').value);
+ const{error}=await sb.from('horas_extras').insert({func_id:id,data:$('#h_d').value||hoje(),horas:h,pct:p,valor:calcHE(f.salario,h,p)});if(error)return alert(error.message);$('#ed').hidden=true;eq()}
+function editF(id){const f=id?FU.find(x=>x.id==id):{nome:'',salario:'',admissao:'',ult_ferias:''};
+ $('#edbox').innerHTML=`<h3>${id?'Editar':'Novo'} funcionário</h3><input id="f_n" placeholder="Nome" value="${esc(f.nome)}"><input id="f_s" type="number" step="0.01" placeholder="Salário mensal" value="${f.salario}"><small>Data de admissão</small><input id="f_a" type="date" value="${f.admissao||''}"><small>Início das últimas férias (se já tirou)</small><input id="f_u" type="date" value="${f.ult_ferias||''}"><div class="row"><button class="s" onclick="$('#ed').hidden=true">Cancelar</button><button onclick="salvaF('${id||''}')">Salvar</button></div>${id?`<button class="s" onclick="deslF('${id}')">Desligar funcionário</button>`:''}`;$('#ed').hidden=false}
+async function salvaF(id){const o={nome:$('#f_n').value.trim(),salario:Number($('#f_s').value)||0,admissao:$('#f_a').value||null,ult_ferias:$('#f_u').value||null};if(!o.nome)return alert('Informe o nome.');
+ const{error}=id?await sb.from('funcionarios').update(o).eq('id',id):await sb.from('funcionarios').insert(o);if(error)return alert(error.message);$('#ed').hidden=true;eq();auto()}
+async function deslF(id){if(!confirm('Desligar? Ele sai da lista (o histórico de pagamentos fica).'))return;await sb.from('funcionarios').update({ativo:false}).eq('id',id);$('#ed').hidden=true;eq()}
+$('#fnovo').onclick=()=>editF('');$('#mic3').onclick=()=>mic('#et','#eres',enviarE);$('#env3').onclick=enviarE;
+async function enviarE(){const r=$('#eres');r.hidden=false;r.textContent='Pensando…';
+ try{if(!FU.length)await carregaEq();const{data,error}=await sb.functions.invoke('ia',{body:{texto:$('#et').value,quem:localStorage.nome,modo:'equipe',ctx:FU.map(f=>({nome:f.nome}))}});if(error)throw error;mostrarE(data)}catch(e){r.textContent='Erro: '+e.message}}
+function mostrarE(j){const r=$('#eres');pendE=null;
+ if(j.acao=='hora_extra'){const f=achaF(j.nome);if(!f){r.textContent='Não achei o funcionário "'+j.nome+'". Cadastre primeiro.';return}const pct=Number(j.pct)==100?100:50,h=Number(j.horas),d=/^\d{4}-\d{2}-\d{2}$/.test(j.data||'')?j.data:hoje();if(!(h>0)){r.textContent='Quantas horas?';return}
+  pendE={t:'he',f,h,pct,d,v:calcHE(f.salario,h,pct)};r.innerHTML=`⏱️ <b>${esc(f.nome)}</b>: ${h} h extra (${pct}%) em ${dBR(d)}<br><b>${brl(pendE.v)}</b><button id="okE">Confirmar</button>`}
+ else if(j.acao=='cadastrar_funcionario'){pendE={t:'f',nome:j.nome,sal:Number(j.salario)||0,adm:/^\d{4}-\d{2}-\d{2}$/.test(j.admissao||'')?j.admissao:null};r.innerHTML=`👷 Cadastrar <b>${esc(j.nome)}</b> · salário ${brl(pendE.sal)}${pendE.adm?' · admissão '+dBR(pendE.adm):''}<button id="okE">Confirmar</button>`}
+ else{r.textContent=j.pergunta||'Não entendi, repita.';return}
+ $('#okE').onclick=async()=>{const p=pendE;let er;if(p.t=='he')({error:er}=await sb.from('horas_extras').insert({func_id:p.f.id,data:p.d,horas:p.h,pct:p.pct,valor:p.v}));else({error:er}=await sb.from('funcionarios').insert({nome:p.nome,salario:p.sal,admissao:p.adm}));
+  if(er)return alert(er.message);$('#et').value='';r.textContent='Salvo ✔';pendE=null;eq();auto()}}
+async function auto(){try{if(!UID)return;await carregaEq();const now=Date.now(),H=hoje(),ym=H.slice(0,7),ano=+ym.slice(0,4),nx=addM(ym+'-01',1).slice(0,7),ms=[ym,nx];
+ const{data:ex}=await sb.from('lembretes').select('id,chave,avisado').eq('user_id',UID).not('chave','is',null);const have=new Map((ex||[]).map(x=>[x.chave,x]));const N=[];
+ const add=(chave,titulo,det,quando,aviso)=>{if(have.has(chave)||new Date(quando)<now)return;let av=new Date(aviso);if(av<now)av=new Date(now+12e4);N.push({user_id:UID,chave,titulo,detalhes:det,quando,aviso:av.toISOString()})};
+ if(FU.length)for(const m of ms)for(const d of[m+'-15',fimMes(m)]){const seg=d.endsWith('-15'),L=FU.map(f=>[f.nome,Number(f.salario)/2+(!seg&&m==ym?sum(HE.filter(h=>h.func_id==f.id)):0)]);
+  add('q-'+d,`Pagar a quinzena (${dBR(d)}) · ${brl(L.reduce((t,x)=>t+x[1],0))}`,L.map(x=>x[0]+' '+brl(x[1])).join(' · ')+(seg?'':' (inclui horas extras pendentes)'),at(d,'08:00'),at(addD(d,-1),'09:00'))}
+ for(const f of FU){const fe=ferias(f);if(!fe)continue;if(fe.atras)add('fa-'+f.id+'-'+fe.due,'Férias vencidas: '+f.nome,'Período vencido em '+dBR(fe.due)+'. Valor: '+brl(fe.valor)+' (salário + 1/3).',at(addD(H,1),'08:00'),at(addD(H,1),'08:00'));
+  else if(fe.due<=addD(H,60))add('f-'+f.id+'-'+fe.due,'Férias de '+f.nome+' em '+dBR(fe.due),'Valor: '+brl(fe.valor)+' (salário + 1/3).',at(fe.due,'08:00'),at(addD(fe.due,-7),'09:00'))}
+ if(FU.length&&H>=ano+'-10-15')for(const[k,d,n]of[['d1',ano+'-11-30','1ª parcela'],['d2',ano+'-12-20','2ª parcela']])add(k+'-'+ano,`13º salário (${n}) vence ${dBR(d)}`,FU.map(f=>{const t=d13(f,ano);return f.nome+' '+brl(k=='d1'?t.p1:t.p2)}).join(' · '),at(d,'08:00'),at(addD(d,-7),'09:00'));
+ for(const m of ms){const fim=fimMes(m),rows=await todos(()=>sb.from('lancamentos').select('valor').eq('tipo','entrada').eq('escopo','empresa').gte('data',m+'-01').lte('data',fim).order('criado')),fat=sum(rows),det=`Faturamento da empresa em ${dBR(m+'-01').slice(3)}: ${brl(fat)} (até a última vez que o app foi aberto; confira em Financeiro > Contador). Envie ao contador para emitir o DAS.`,k='das-'+m;
+  if(have.has(k)){if(!have.get(k).avisado)await sb.from('lembretes').update({detalhes:det}).eq('id',have.get(k).id)}else add(k,'Enviar faturamento do mês ao contador (DAS)',det,at(fim,'12:00'),at(addD(fim,-7),'09:00'));
+  add('daspg-'+m,'Vence hoje o DAS (dia 20)','Pague a guia do DAS enviada pelo contador.',at(m+'-20','08:00'),at(addD(m+'-20',-1),'09:00'))}
+ const dow=new Date(H+'T12:00:00Z').getUTCDay(),s=addD(H,(7-dow)%7);for(const d of[s,addD(s,7)])add('sem-'+d,'Resumo da semana','Abra Financeiro > Semana para ver como foi a semana e as sugestões.',at(d,'18:00'),at(d,'18:00'));
+ if(N.length){const{error}=await sb.from('lembretes').insert(N);if(error)console.log('auto',error.message)}}catch(e){console.log('auto',e.message)}}
+function baixaCSV(L,nome){const q=v=>'"'+String(v??'').replace(/"/g,'""')+'"',h=['data','tipo','valor','escopo','categoria','descricao','loja','forma','pessoa'];
+ const t=[h.join(';')].concat(L.map(x=>h.map(k=>k=='valor'?String(Number(x.valor)).replace('.',','):q(x[k])).join(';'))).join('\r\n');
+ const a=document.createElement('a');a.href=URL.createObjectURL(new Blob(['﻿'+t],{type:'text/csv;charset=utf-8'}));a.download=nome;a.click()}
+async function verNota(n){const{data,error}=await sb.storage.from('notas').createSignedUrl(n,3600);if(error)return alert(error.message);$('#edbox').innerHTML=`<h3>Nota fiscal</h3><img src="${data.signedUrl}" style="width:100%;border-radius:6px"><a href="${data.signedUrl}" target="_blank"><button class="s">Abrir em tela cheia</button></a><button onclick="$('#ed').hidden=true">Fechar</button>`;$('#ed').hidden=false}
+let CSVL=[],CSVN='';const csvb=()=>baixaCSV(CSVL,CSVN);
+async function especial(){const o=$('#fout');o.textContent='Carregando…';const H=hoje();
+ try{
+ if(VW=='semana'){$('#fsal').innerHTML='';const ini=addD(H,-6),L=await todos(()=>sb.from('lancamentos').select('*').gte('data',ini).lte('data',H).order('data',{ascending:false}).order('criado'));FD=L;
+  const en=L.filter(x=>x.tipo=='entrada'),sa=L.filter(x=>x.tipo=='saida'),em=L.filter(x=>x.escopo=='empresa'),cx=sum(em.filter(x=>x.tipo=='entrada'))-sum(em.filter(x=>x.tipo=='saida'));
+  const{data:lm}=await sb.from('lembretes').select('titulo,quando').eq('user_id',UID).eq('feito',false).lte('quando',at(addD(H,8),'00:00')).order('quando');
+  const top=sa.slice().sort((a,b)=>b.valor-a.valor).slice(0,5);
+  window.RES={periodo:dBR(ini)+' a '+dBR(H),entradas:sum(en),saidas:sum(sa),empresa:{entrou:sum(em.filter(x=>x.tipo=='entrada')),saiu:sum(em.filter(x=>x.tipo=='saida'))},casa:{entrou:sum(L.filter(x=>x.escopo=='casa'&&x.tipo=='entrada')),saiu:sum(L.filter(x=>x.escopo=='casa'&&x.tipo=='saida'))},saidas_por_categoria:Object.fromEntries(Object.entries(sa.reduce((a,x)=>(a[x.categoria||'outros']=(a[x.categoria||'outros']||0)+Number(x.valor),a),{}))),maiores_saidas:top.map(x=>({desc:x.loja||x.descricao,valor:x.valor}))};
+  o.innerHTML=`<div class="box"><b>Últimos 7 dias · ${dBR(ini).slice(0,5)} a ${dBR(H).slice(0,5)}</b><div class="ln"><span>Entrou</span><b class="e">${brl(sum(en))}</b></div><div class="ln"><span>Saiu</span><b class="s2">${brl(sum(sa))}</b></div><div class="ln"><span>Saldo</span><b>${brl(sum(en)-sum(sa))}</b></div><div class="ln"><span>Caixa da empresa na semana</span><b class="${cx>=0?'e':'s2'}">${cx>=0?'🟢':'🔴'} ${brl(cx)}</b></div></div>
+  <div class="box"><b>Saídas por categoria</b>${por(sa,'categoria')}</div><div class="box"><b>Próximos 7 dias</b>${(lm||[]).length?lm.map(x=>`<div class="ln"><span>${esc(x.titulo)}</span><small>${fq(x.quando)}</small></div>`).join(''):'<small>Nada marcado.</small>'}</div>
+  <button id="sug">💡 Sugestões da secretária</button><div id="sugt" class="box" hidden></div><h3>Lançamentos</h3>`+(L.length?L.map(card).join(''):'<small>Nada nos últimos 7 dias.</small>');
+  $('#sug').onclick=async()=>{const t=$('#sugt');t.hidden=false;t.textContent='Analisando…';try{const{data,error}=await sb.functions.invoke('ia',{body:{texto:JSON.stringify(window.RES),quem:localStorage.nome,modo:'analise'}});if(error)throw error;t.textContent=data.texto||data.pergunta||'Sem sugestões.'}catch(e){t.textContent='Erro: '+e.message}}}
+ else if(VW=='ano'){$('#fsal').innerHTML='';const ano=$('#mes').value.slice(0,4),L=await todos(()=>sb.from('lancamentos').select('*').gte('data',ano+'-01-01').lt('data',(+ano+1)+'-01-01').order('data').order('criado'));CSVL=L;CSVN='mapa-anual-'+ano+'.csv';
+  const M=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];let ten=0,tsa=0;
+  const rows=M.map((n,i)=>{const l=L.filter(x=>x.data.slice(5,7)==String(i+1).padStart(2,'0')),e=sum(l.filter(x=>x.tipo=='entrada')),s=sum(l.filter(x=>x.tipo=='saida'));ten+=e;tsa+=s;return`<tr><td>${n}</td><td class="e">${brl(e)}</td><td class="s2">${brl(s)}</td><td>${brl(e-s)}</td></tr>`}).join('');
+  const em=L.filter(x=>x.escopo=='empresa'),saE=em.filter(x=>x.tipo=='saida');
+  o.innerHTML=`<div class="box"><b>Mapa anual ${ano}</b><table style="width:100%;font-size:13px;border-collapse:collapse"><tr><th align=left>Mês</th><th align=left>Entrou</th><th align=left>Saiu</th><th align=left>Saldo</th></tr>${rows}<tr><td><b>Total</b></td><td class="e"><b>${brl(ten)}</b></td><td class="s2"><b>${brl(tsa)}</b></td><td><b>${brl(ten-tsa)}</b></td></tr></table></div>
+  <div class="box"><b>Empresa no ano</b><div class="ln"><span>Faturamento</span><b class="e">${brl(sum(em.filter(x=>x.tipo=='entrada')))}</b></div><div class="ln"><span>Despesas</span><b class="s2">${brl(sum(saE))}</b></div></div><div class="box"><b>Despesas da empresa por categoria</b>${por(saE,'categoria')}</div><button class="s" onclick="csvb()">⬇️ Baixar planilha do ano (Excel/CSV)</button>`}
+ else{const ee=FD.filter(x=>x.tipo=='entrada'&&x.escopo=='empresa'),fat=sum(ee),fn=sum(FD.filter(x=>x.tipo=='saida'&&x.categoria=='funcionarios')),m=$('#mes').value,mm=dBR(m+'-01').slice(3);CSVL=FD.slice().reverse();CSVN='financeiro-'+m+'.csv';
+  o.innerHTML=`<div class="box"><small>Faturamento da empresa em ${mm} (para o DAS)</small><div class="big e">${brl(fat)}</div><small>${ee.length} entradas · gastos com funcionários: ${brl(fn)} · notas guardadas: ${FD.filter(x=>x.nota).length}</small></div>
+  <button id="cpm">📋 Copiar mensagem para o contador</button><button class="s" onclick="csvb()">⬇️ Baixar planilha do mês (Excel/CSV)</button><div class="box"><b>Entradas da empresa por cliente</b>${por(ee.map(x=>({...x,c:x.loja||x.descricao})),'c')}</div>`;
+  $('#cpm').onclick=async()=>{const t=`Faturamento da IDEAL M MÓVEIS em ${mm}: ${brl(fat)} (${ee.length} entradas). Favor emitir o DAS.`;try{await navigator.clipboard.writeText(t);$('#cpm').textContent='Copiado ✔'}catch(e){prompt('Copie:',t)}}}
+ }catch(e){o.textContent='Erro: '+e.message}}
+
 $('#abrecfg').onclick=()=>{$('#login').hidden=true;$('#setup').hidden=false;$('#su').value=SUPA_URL;$('#sk').value=SUPA_KEY};
 $('#cfgbtn').onclick=async()=>{const u=lim($('#su').value.trim()),k=$('#sk').value.trim(),p=[$('#p1').value,$('#p2').value],e=$('#cerr');
  if(!u||!k){e.textContent='Cole a URL e a chave.';return}
