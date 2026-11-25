@@ -20,7 +20,7 @@ nav{position:sticky;top:0;z-index:5;display:grid;grid-template-columns:repeat(4,
 <div id="app" hidden>
 <section id="lancar"><h2>Fale ou escreva</h2>
 <textarea id="txt" rows="3" placeholder="Ex.: recebi 35 mil da Dona Fabíola no Pix do Itaú"></textarea>
-<div class="row"><button class="s" id="mic">🎤 Falar</button><button class="s" id="cam">📷 Tirar foto</button><button class="s" id="gal">🖼️ Galeria</button></div><button id="env">Enviar</button>
+<div class="row"><button class="s" id="mic">🎤 Falar</button><button class="s" id="cam">📷 Tirar foto</button><button class="s" id="gal">🖼️ Galeria</button></div><button class="s" id="pgf">💼 Pagamento de funcionários</button><button id="env">Enviar</button>
 <input type="file" id="arq" accept="image/*" hidden><input type="file" id="arq2" accept="image/*" capture="environment" hidden><div id="res" class="box" hidden></div></section>
 <section id="fin" hidden><div class="row"><button class="s" id="mm">‹</button><input type="month" id="mes"><button class="s" id="mp">›</button></div>
 <div id="fsal"></div><div class="chips" id="chips"><button data-v="resumo">Resumo</button><button data-v="entradas">Entradas</button><button data-v="saidas">Saídas</button><button data-v="empresa">Empresa</button><button data-v="casa">Casa</button><button data-v="semana">Semana</button><button data-v="ano">Ano</button><button data-v="contador">Contador</button></div><div id="fout"></div></section>
@@ -56,7 +56,7 @@ $('#entrar').onclick=async()=>{const pw=$('#pw').value;$('#lerr').textContent='E
  for(const u of USERS){const{error}=await sb.auth.signInWithPassword({email:u.email,password:pw});if(!error){localStorage.nome=u.nome;$('#lerr').textContent='';return init()}if(!/invalid login/i.test(error.message))msg=error.message}
  $('#lerr').textContent=msg};
 $('#pw').onkeydown=e=>{if(e.key=='Enter')$('#entrar').click()};
-function aba(n){document.querySelectorAll('nav button[data-a]').forEach(b=>b.classList.toggle('on',b.dataset.a==n));document.querySelectorAll('section').forEach(s=>s.hidden=s.id!=n);if(n=='fin')fin();if(n=='lem')lem();if(n=='eq')eq()}
+function aba(n){PFM=false;document.querySelectorAll('nav button[data-a]').forEach(b=>b.classList.toggle('on',b.dataset.a==n));document.querySelectorAll('section').forEach(s=>s.hidden=s.id!=n);if(n=='fin')fin();if(n=='lem')lem();if(n=='eq')eq()}
 document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>aba(b.dataset.a));
 $('#mes').onchange=fin;
 function mic(tx,bx,fn){const R=window.SpeechRecognition||window.webkitSpeechRecognition,r=$(bx);r.hidden=false;if(!R){r.textContent='Este navegador não tem ditado por voz. Use o Chrome (Android) ou o Safari (iPhone), ou o microfone do teclado.';return}
@@ -199,24 +199,41 @@ function cardF(f){const H=hoje(),ym=H.slice(0,7),ano=H.slice(0,4),sal=Number(f.s
  <div class="ln"><span>13º ${ano} · 1ª parcela (até 30/11)${ok('d1-'+ano)}</span><span>${brl(t.p1)}</span></div>
  <div class="ln"><span>13º ${ano} · 2ª parcela (até 20/12)${ok('d2-'+ano)}</span><span>${brl(t.p2)}</span></div>
  <div class="ln"><span>${fe?(fe.atras?'🔴 Férias vencidas desde '+dBR(fe.due):'Férias vencem em '+dBR(fe.due)):'Férias: informe a admissão'}</span><span>${fe?brl(fe.valor):''}</span></div>
- <div class="row"><button onclick="pagar('${f.id}')">Pagar</button><button class="s" onclick="horaE('${f.id}')">+ Hora extra</button><button class="s" onclick="editF('${f.id}')">Editar</button></div>
+ <div class="row"><button onclick="pagar('${f.id}')">Pagar</button><button class="s" onclick="editF('${f.id}')">Editar</button></div>
  <details><summary><small>Pagamentos de ${ano}</small></summary>${hist.length?hist.map(p=>`<div class="ln"><span><small>${dBR(p.data)} · ${esc(p.descricao||'')}</small></span><span>${brl(p.valor)}</span></div>`).join(''):'<small>Nenhum ainda.</small>'}${he.map(h=>`<div class="ln"><span><small>${dBR(h.data)} · hora extra ${h.horas}h pendente</small></span><span>${brl(h.valor)} <a href="#" onclick="delHE('${h.id}');return false">🗑</a></span></div>`).join('')}</details></div>`}
 async function delHE(id){if(!confirm('Apagar esta hora extra?'))return;await sb.from('horas_extras').delete().eq('id',id);eq()}
+let PFM=false;
+async function listaPF(){PFM=true;$('#edbox').innerHTML='<h3>Pagamento de funcionários</h3><p>Carregando…</p>';$('#ed').hidden=false;
+ try{await carregaEq()}catch(e){$('#edbox').innerHTML='<h3>Pagamento de funcionários</h3><p>Erro: '+esc(e.message)+'</p><small>Falta rodar o atualizar.sql no Supabase.</small><button onclick="$(\'#ed\').hidden=true">Fechar</button>';return}
+ const ym=hoje().slice(0,7);
+ $('#edbox').innerHTML=`<h3>Pagamento de funcionários</h3><small>Escolha o funcionário · ${dBR(ym+'-01').slice(3)}</small>`+(FU.length?FU.map(f=>{const a=PG.find(p=>p.func_id==f.id&&p.ref=='q1-'+ym),b=PG.find(p=>p.func_id==f.id&&p.ref=='q2-'+ym);return `<button style="text-align:left;margin:8px 0;padding:14px" onclick="pagar('${f.id}')"><b>${esc(f.nome)}</b> · ${f.funcao=='marceneiro'?'Marceneiro':'Auxiliar'}<br><small>1ª quinzena ${a?'✅ '+brl(a.valor):'— a pagar'} · 2ª quinzena ${b?'✅ '+brl(b.valor):'— a pagar'}</small></button>`}).join(''):'<p>Nenhum funcionário cadastrado. Cadastre na aba Equipe.</p>')+`<button class="s" onclick="$('#ed').hidden=true">Fechar</button>`}
+$('#pgf').onclick=listaPF;
 function pagar(id){const f=FU.find(x=>x.id==id),H=hoje(),ym=H.slice(0,7),ano=H.slice(0,4),sal=Number(f.salario),hv=sum(HE.filter(h=>h.func_id==id)),t=d13(f,+ano),vt=f.vt?Number(f.vt_valor)||0:0;
- OP=[{k:'q1-'+ym,n:'1ª quinzena',v:r2(sal/2),q:1},{k:'q2-'+ym,n:'2ª quinzena',v:r2(sal/2),q:1},{k:'he-'+H,n:'Só horas extras',v:0,q:1},{k:'d1-'+ano,n:'13º salário – 1ª parcela',v:t.p1},{k:'d2-'+ano,n:'13º salário – 2ª parcela',v:t.p2},{k:'f-'+ano,n:'Férias (+1/3)',v:feriasVal(f),fer:1},{k:'outro-'+Date.now(),n:'Outro pagamento',v:0}];
- const c=(i,t,x)=>`<small>${t}</small><input id="${i}" type="number" step="0.01" value="${x}">`;
- $('#edbox').innerHTML=`<h3>Pagar ${esc(f.nome)}</h3><select id="p_t">${OP.map((o,i)=>`<option value="${i}">${o.n}</option>`).join('')}</select>${c('p_v','Valor base (quinzena / 13º / férias)',0)}${c('p_he','Hora extra (R$)',hv)}${c('p_vt','Vale transporte (R$)',vt)}${c('p_fd','Dias de falta (desconta '+brl(diaFalta(f))+' por dia)',0)}${c('p_d2','Outros descontos (R$)',0)}<select id="p_f"><option value="pix">Pix</option><option value="dinheiro">Dinheiro</option><option value="debito">Débito</option><option value="boleto">Boleto</option></select><input id="p_d" type="date" value="${H}"><div class="box"><small>Total a pagar</small><div class="big" id="p_tot"></div></div><div class="row"><button class="s" onclick="$('#ed').hidden=true">Cancelar</button><button onclick="salvaP('${id}')">Registrar saída</button></div>`;
- const n=k=>Number($('#p_'+k).value)||0,tot=()=>r2(n('v')+n('he')+n('vt')-n('fd')*diaFalta(f)-n('d2'));
+ OP=[{k:'q1-'+ym,n:'1ª quinzena',v:r2(sal/2),q:1},{k:'q2-'+ym,n:'2ª quinzena',v:r2(sal/2),q:1},{k:'d1-'+ano,n:'13º salário – 1ª parcela',v:t.p1},{k:'d2-'+ano,n:'13º salário – 2ª parcela',v:t.p2},{k:'f-'+ano,n:'Férias (+1/3)',v:feriasVal(f),fer:1},{k:'outro-'+Date.now(),n:'Outro pagamento',v:0}];
+ const c=(i,t,x,ph)=>`<small>${t}</small><input id="${i}" type="number" step="0.01" value="${x}" placeholder="${ph||''}">`;
+ const ja1=PG.find(p=>p.func_id==id&&p.ref=='q1-'+ym);
+ $('#edbox').innerHTML=`<h3>Pagar ${esc(f.nome)}</h3><select id="p_t">${OP.map((o,i)=>`<option value="${i}">${o.n}</option>`).join('')}</select>${c('p_v','Valor (quinzena / 13º / férias)',0)}
+ <div class="row"><div>${c('p_hh','Horas extras (qtd)','',brl(taxa(f).e)+'/h')}</div><div>${c('p_he','Hora extra (R$)',hv)}</div></div>
+ ${f.vt?c('p_vt','Passagem / vale transporte (R$)',vt):'<input id="p_vt" type="hidden" value="0">'}
+ <div class="row"><div>${c('p_fd','Dias de falta (qtd)','',brl(diaFalta(f))+' por dia')}</div><div>${c('p_d2','Desconto (R$)',0)}</div></div>
+ <small>Se o desconto for diferente (ex.: faltou 1 dia, descontou 2), digite o valor do desconto direto.</small>
+ <textarea id="p_ob" rows="2" placeholder="Observação (ex.: hora extra de sexta, 3 h · descontados 2 dias, faltou 1)"></textarea>
+ <select id="p_f"><option value="pix">Pix</option><option value="dinheiro">Dinheiro</option><option value="debito">Débito</option><option value="boleto">Boleto</option></select><input id="p_d" type="date" value="${H}"><div class="box"><small>Total a pagar</small><div class="big" id="p_tot"></div></div>
+ <div class="row"><button class="s" onclick="${PFM?'listaPF()':'$(\'#ed\').hidden=true'}">${PFM?'Voltar':'Cancelar'}</button><button onclick="salvaP('${id}')">Registrar saída</button></div>`;
+ const n=k=>Number($('#p_'+k).value)||0,tot=()=>r2(n('v')+n('he')+n('vt')-n('d2'));
  const calc=()=>$('#p_tot').textContent=brl(tot());window.TOT=tot;
- $('#p_t').onchange=()=>{const o=OP[$('#p_t').value];$('#p_v').value=o.v;if(!o.q){$('#p_he').value=0;$('#p_vt').value=0}else{$('#p_he').value=hv;$('#p_vt').value=o.k.startsWith('he-')?0:vt}calc()};
- ['v','he','vt','fd','d2'].forEach(k=>$('#p_'+k).oninput=calc);$('#p_t').onchange();$('#ed').hidden=false}
+ $('#p_t').onchange=()=>{const o=OP[$('#p_t').value];$('#p_v').value=o.v;if(o.q){$('#p_he').value=hv;$('#p_vt').value=vt}else{$('#p_he').value=0;$('#p_vt').value=0}calc()};
+ $('#p_hh').oninput=()=>{$('#p_he').value=calcHE(f,n('hh'));calc()};$('#p_fd').oninput=()=>{$('#p_d2').value=r2(n('fd')*diaFalta(f));calc()};
+ ['v','he','vt','d2'].forEach(k=>$('#p_'+k).oninput=calc);
+ $('#p_t').value=PFM?(ja1||H.slice(8)>'20'?'1':'0'):'2';$('#p_t').onchange();$('#ed').hidden=false}
 async function salvaP(id){const f=FU.find(x=>x.id==id),o=OP[$('#p_t').value],g=k=>Number($('#p_'+k).value)||0,d=$('#p_d').value||hoje(),v=window.TOT();if(v<=0)return alert('O total precisa ser maior que zero.');
  if(PG.find(p=>p.func_id==id&&p.ref==o.k)&&!confirm('Já existe um pagamento registrado para isso. Registrar de novo?'))return;
- const pt=[];if(g('v'))pt.push(o.n.toLowerCase()+' '+brl(g('v')));if(g('he'))pt.push('hora extra '+brl(g('he')));if(g('vt'))pt.push('vale transporte '+brl(g('vt')));if(g('fd'))pt.push('− '+g('fd')+' falta(s) '+brl(g('fd')*diaFalta(f)));if(g('d2'))pt.push('− descontos '+brl(g('d2')));
- const{error}=await sb.from('lancamentos').insert({tipo:'saida',valor:v,escopo:'empresa',categoria:'funcionarios',descricao:o.n+' – '+f.nome+' ('+pt.join(', ')+')',loja:f.nome,forma:$('#p_f').value,pessoa:localStorage.nome||'',data:d,func_id:id,ref:o.k});if(error)return alert(error.message);
+ const pt=[];if(g('v'))pt.push(o.n.toLowerCase()+' '+brl(g('v')));if(g('he'))pt.push('hora extra '+brl(g('he'))+(g('hh')?' ('+g('hh')+' h)':''));if(g('vt'))pt.push('passagem '+brl(g('vt')));if(g('d2'))pt.push('− desconto '+brl(g('d2'))+(g('fd')?' ('+g('fd')+' falta)':''));
+ const ob=$('#p_ob').value.trim();
+ const{error}=await sb.from('lancamentos').insert({tipo:'saida',valor:v,escopo:'empresa',categoria:'funcionarios',descricao:o.n+' – '+f.nome+' ('+pt.join(', ')+')'+(ob?' · Obs: '+ob:''),loja:f.nome,forma:$('#p_f').value,pessoa:localStorage.nome||'',data:d,func_id:id,ref:o.k});if(error)return alert(error.message);
  if(g('he')>0)await sb.from('horas_extras').update({pago:true}).eq('func_id',id).eq('pago',false);
  if(o.fer)await sb.from('funcionarios').update({ult_ferias:d}).eq('id',id);
- $('#ed').hidden=true;eq()}
+ if(PFM)listaPF();else{$('#ed').hidden=true;eq()}}
 function horaE(id){const f=FU.find(x=>x.id==id);
  $('#edbox').innerHTML=`<h3>Hora extra – ${esc(f.nome)}</h3><input id="h_h" type="number" step="0.25" placeholder="Horas (ex.: 2.5)"><input id="h_d" type="date" value="${hoje()}"><p id="h_c"></p><div class="row"><button class="s" onclick="$('#ed').hidden=true">Cancelar</button><button onclick="salvaHE('${id}')">Salvar</button></div>`;
  const c=()=>$('#h_c').textContent=brl(taxa(f).e)+' por hora × '+($('#h_h').value||0)+' h = '+brl(calcHE(f,$('#h_h').value||0));$('#h_h').oninput=c;c();$('#ed').hidden=false}
