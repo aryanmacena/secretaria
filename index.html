@@ -174,8 +174,8 @@ const addM=(s,n)=>{const d=new Date(s+'T12:00:00Z');d.setUTCMonth(d.getUTCMonth(
 const fimMes=ym=>{const[a,m]=ym.split('-').map(Number);return ym+'-'+String(new Date(a,m,0).getDate()).padStart(2,'0')};
 const at=(d,h)=>new Date(d+'T'+h+':00-03:00').toISOString();
 const dBR=d=>String(d||'').split('-').reverse().join('/');
-const TX={marceneiro:{n:15,e:30},auxiliar:{n:7.5,e:15}};const taxa=f=>TX[f&&f.funcao]||TX.auxiliar;
-const calcHE=(f,h)=>r2(taxa(f).e*Number(h));const diaFalta=f=>r2(Number(f.salario)/30);
+const TX={marceneiro:{n:15,e:30,d:120},auxiliar:{n:7.5,e:15,d:81.05}};const taxa=f=>TX[f&&f.funcao]||TX.auxiliar;
+const calcHE=(f,h)=>r2(taxa(f).e*Number(h));const diaFalta=f=>taxa(f).d;
 function meses13(adm,ano){let ini=1;if(adm){const[a,m,d]=adm.split('-').map(Number);if(a>ano)return 0;if(a==ano){const dm=new Date(a,m,0).getDate();ini=m+((dm-d+1)>=15?0:1)}}return Math.max(0,Math.min(12,13-ini))}
 function d13(f,ano){const meses=meses13(f.admissao,ano),total=r2(Number(f.salario)*meses/12),p1=r2(total/2);return{meses,total,p1,p2:r2(total-p1)}}
 function ferias(f){const base=f.ult_ferias||f.admissao;if(!base)return null;const due=addM(base,12);return{due,valor:r2(Number(f.salario)*4/3),atras:due<hoje()}}
