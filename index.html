@@ -30,8 +30,6 @@ nav{position:sticky;top:0;z-index:5;display:grid;grid-template-columns:repeat(4,
 <div id="pst" class="box"></div><button class="s" id="notif">🔔 Ativar avisos neste aparelho</button><button class="s" id="tst">🔊 Testar som e vibração</button><div id="res2" class="box" hidden></div><div id="lout"></div>
 <details><summary>Adicionar manualmente</summary><input id="lt" placeholder="O que lembrar?"><input id="lq" type="datetime-local"><button id="ladd">Salvar lembrete</button></details></section>
 <section id="eq" hidden><h2>Equipe</h2>
-<textarea id="et" rows="2" placeholder="Ex.: Paulo fez 3 horas extras ontem  /  cadastrar funcionário Pablo salário 2500"></textarea>
-<div class="row"><button class="s" id="mic3">🎤 Falar</button><button id="env3">Enviar</button></div><div id="eres" class="box" hidden></div>
 <button class="s" id="fnovo">+ Novo funcionário</button><div id="eout"></div></section>
 </div></main><div id="ed" hidden><div class="box" id="edbox" style="max-width:640px;margin:auto"></div></div>
 
@@ -190,17 +188,17 @@ async function carregaEq(){const a=hoje().slice(0,4);
  if(f.error)throw f.error;if(h.error)throw h.error;if(p.error)throw p.error;FU=f.data||[];HE=h.data||[];PG=p.data||[]}
 async function eq(){const o=$('#eout');o.textContent='Carregando…';
  try{await carregaEq()}catch(e){o.innerHTML='Erro: '+esc(e.message)+'<br><small>Se disser que a tabela não existe, falta rodar o atualizar.sql no Supabase.</small>';return}
- o.innerHTML=`<div class="box"><small>Folha mensal (salários)</small><div class="big">${brl(sum(FU.map(f=>({valor:f.salario}))))}</div><small>Horas extras pendentes: ${brl(sum(HE))}</small></div>`+(FU.length?FU.map(cardF).join(''):'<p><small>Nenhum funcionário ainda. Toque em "Novo funcionário".</small></p>')}
+ o.innerHTML=`<div class="box"><small>Folha mensal (salários)</small><div class="big">${brl(sum(FU.map(f=>({valor:f.salario}))))}</div><small>Salário fixo mensal de todos os funcionários · pagamentos são feitos em Falar › Pagamento de funcionários</small></div>`+(FU.length?FU.map(cardF).join(''):'<p><small>Nenhum funcionário ainda. Toque em "Novo funcionário".</small></p>')}
 function cardF(f){const H=hoje(),ym=H.slice(0,7),ano=H.slice(0,4),sal=Number(f.salario),he=HE.filter(h=>h.func_id==f.id),hv=sum(he),hh=he.reduce((t,h)=>t+Number(h.horas),0),pg=r=>PG.find(p=>p.func_id==f.id&&p.ref==r),ok=r=>pg(r)?' ✅ pago':'',t=d13(f,+ano),fe=ferias(f),hist=PG.filter(p=>p.func_id==f.id);
  return `<div class="box"><div class="ln"><b>${esc(f.nome)}</b><b>${brl(sal)}</b></div><small>${f.funcao=='marceneiro'?'Marceneiro':'Auxiliar'} · hora normal ${brl(taxa(f).n)} · hora extra ${brl(taxa(f).e)}<br>Base de férias e 13º: ${brl(baseF(f))}<br>${f.admissao?'Admissão '+dBR(f.admissao):'Sem data de admissão'} · Vale transporte: ${f.vt?brl(f.vt_valor)+' por quinzena':'não recebe'}</small>
  <div class="ln"><span>1ª quinzena (dia 15)${ok('q1-'+ym)}</span><span>${brl(sal/2)}</span></div>
  <div class="ln"><span>2ª quinzena (fim do mês)${ok('q2-'+ym)}</span><span>${brl(sal/2)}</span></div>
- <div class="ln"><span>Horas extras pendentes (${hh.toLocaleString('pt-BR')} h × ${brl(taxa(f).e)})</span><b>${brl(hv)}</b></div>
+
  <div class="ln"><span>13º ${ano} · 1ª parcela (até 30/11)${ok('d1-'+ano)}</span><span>${brl(t.p1)}</span></div>
  <div class="ln"><span>13º ${ano} · 2ª parcela (até 20/12)${ok('d2-'+ano)}</span><span>${brl(t.p2)}</span></div>
  <div class="ln"><span>${fe?(fe.atras?'🔴 Férias vencidas desde '+dBR(fe.due):'Férias vencem em '+dBR(fe.due)):'Férias: informe a admissão'}</span><span>${fe?brl(fe.valor):''}</span></div>
- <div class="row"><button onclick="pagar('${f.id}')">Pagar</button><button class="s" onclick="editF('${f.id}')">Editar</button></div>
- <details><summary><small>Pagamentos de ${ano}</small></summary>${hist.length?hist.map(p=>`<div class="ln"><span><small>${dBR(p.data)} · ${esc(p.descricao||'')}</small></span><span>${brl(p.valor)}</span></div>`).join(''):'<small>Nenhum ainda.</small>'}${he.map(h=>`<div class="ln"><span><small>${dBR(h.data)} · hora extra ${h.horas}h pendente</small></span><span>${brl(h.valor)} <a href="#" onclick="delHE('${h.id}');return false">🗑</a></span></div>`).join('')}</details></div>`}
+ <div class="row"><button class="s" onclick="editF('${f.id}')">Editar</button></div>
+ <details><summary><small>Pagamentos de ${ano}</small></summary>${hist.length?hist.map(p=>`<div class="ln"><span><small>${dBR(p.data)} · ${esc(p.descricao||'')}</small></span><span>${brl(p.valor)}</span></div>`).join(''):'<small>Nenhum ainda.</small>'}</details></div>`}
 async function delHE(id){if(!confirm('Apagar esta hora extra?'))return;await sb.from('horas_extras').delete().eq('id',id);eq()}
 let PFM=false;
 async function listaPF(){PFM=true;$('#edbox').innerHTML='<h3>Pagamento de funcionários</h3><p>Carregando…</p>';$('#ed').hidden=false;
@@ -244,7 +242,7 @@ function editF(id){const f=id?FU.find(x=>x.id==id):{nome:'',salario:'',admissao:
 async function salvaF(id){const o={nome:$('#f_n').value.trim(),salario:Number($('#f_s').value)||0,admissao:$('#f_a').value||null,ult_ferias:$('#f_u').value||null,funcao:$('#f_fn').value,base_ferias:Number($('#f_b').value)||null,vt:$('#f_vt').value=='1',vt_valor:Number($('#f_vv').value)||0};if(!o.nome)return alert('Informe o nome.');
  const{error}=id?await sb.from('funcionarios').update(o).eq('id',id):await sb.from('funcionarios').insert(o);if(error)return alert(error.message);$('#ed').hidden=true;eq();auto()}
 async function deslF(id){if(!confirm('Desligar? Ele sai da lista (o histórico de pagamentos fica).'))return;await sb.from('funcionarios').update({ativo:false}).eq('id',id);$('#ed').hidden=true;eq()}
-$('#fnovo').onclick=()=>editF('');$('#mic3').onclick=()=>mic('#et','#eres',enviarE);$('#env3').onclick=enviarE;
+$('#fnovo').onclick=()=>editF('');
 async function enviarE(){const r=$('#eres');r.hidden=false;r.textContent='Pensando…';
  try{if(!FU.length)await carregaEq();const{data,error}=await sb.functions.invoke('ia',{body:{texto:$('#et').value,quem:localStorage.nome,modo:'equipe',ctx:FU.map(f=>({nome:f.nome}))}});if(error)throw error;mostrarE(data)}catch(e){r.textContent='Erro: '+e.message}}
 function mostrarE(j){const r=$('#eres');pendE=null;
