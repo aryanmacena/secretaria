@@ -27,7 +27,7 @@ nav{position:sticky;top:0;z-index:5;display:flex;background:#111}nav[hidden]{dis
 <section id="lem" hidden><h2>Lembretes</h2>
 <textarea id="lt2" rows="2" placeholder="Ex.: reunião com a Dona Fabíola quarta às 15h  /  a reunião de quinta foi para sexta da semana que vem"></textarea>
 <div class="row"><button class="s" id="mic2">🎤 Falar</button><button id="env2">Anotar</button></div>
-<button class="s" id="notif">🔔 Ativar avisos neste aparelho</button><div id="res2" class="box" hidden></div><div id="lout"></div>
+<div id="pst" class="box"></div><button class="s" id="notif">🔔 Ativar avisos neste aparelho</button><button class="s" id="tst">🔊 Testar som e vibração</button><div id="res2" class="box" hidden></div><div id="lout"></div>
 <details><summary>Adicionar manualmente</summary><input id="lt" placeholder="O que lembrar?"><input id="lq" type="datetime-local"><button id="ladd">Salvar lembrete</button></details></section>
 </div></main><div id="ed" hidden><div class="box" id="edbox" style="max-width:640px;margin:auto"></div></div>
 
@@ -47,7 +47,7 @@ async function init(){if(!sb){$('#login').hidden=true;$('#setup').hidden=false;r
  const{data:{session}}=await sb.auth.getSession();
  if(session&&REC){$('#login').hidden=true;$('#app').hidden=true;$('#nav').hidden=true;$('#nova').hidden=false;return}
  $('#login').hidden=!!session;$('#app').hidden=!session;$('#nav').hidden=!session;
- if(session){UID=session.user.id;if('Notification'in window&&Notification.permission=='granted')ativarPush(false);localStorage.nome=(USERS.find(u=>u.email==session.user.email)||{nome:'Aryan'}).nome;aba('lancar');if('Notification'in window)Notification.requestPermission();checar();setInterval(checar,30000)}}
+ if(session){UID=session.user.id;if('Notification'in window&&Notification.permission=='granted')ativarPush(false).then(statusPush);localStorage.nome=(USERS.find(u=>u.email==session.user.email)||{nome:'Aryan'}).nome;aba('lancar');checar();setInterval(checar,30000)}}
 $('#entrar').onclick=async()=>{const pw=$('#pw').value;$('#lerr').textContent='Entrando…';let msg='Senha incorreta.';
  for(const u of USERS){const{error}=await sb.auth.signInWithPassword({email:u.email,password:pw});if(!error){localStorage.nome=u.nome;$('#lerr').textContent='';return init()}if(!/invalid login/i.test(error.message))msg=error.message}
  $('#lerr').textContent=msg};
@@ -59,14 +59,26 @@ function mic(tx,bx,fn){const R=window.SpeechRecognition||window.webkitSpeechReco
  const x=new R();x.lang='pt-BR';x.onstart=()=>r.textContent='🎤 Ouvindo… fale agora';x.onerror=e=>r.textContent='Microfone: '+(e.error=='not-allowed'?'permita o microfone no navegador.':e.error);x.onresult=e=>{$(tx).value=e.results[0][0].transcript;fn()};x.start()}
 $('#mic').onclick=()=>mic('#txt','#res',enviar);$('#mic2').onclick=()=>mic('#lt2','#res2',enviarL);$('#env2').onclick=enviarL;
 const v2u=b=>{const a=atob((b+'='.repeat((4-b.length%4)%4)).replace(/-/g,'+').replace(/_/g,'/'));return Uint8Array.from([...a].map(c=>c.charCodeAt(0)))};
-async function ativarPush(pedir){try{if(!('serviceWorker'in navigator)||!('PushManager'in window))return false;
+let PMSG='',AC=null;
+const IOS=/iPad|iPhone|iPod/.test(navigator.userAgent),STD=navigator.standalone||matchMedia('(display-mode: standalone)').matches;
+function unlock(){try{AC=AC||new(window.AudioContext||window.webkitAudioContext)();AC.resume&&AC.resume()}catch(e){}}
+document.addEventListener('touchstart',unlock,{passive:true});document.addEventListener('click',unlock);
+function chime(){try{unlock();if(!AC)return;[[660,0],[880,.22]].forEach(([f,t])=>{const o=AC.createOscillator(),g=AC.createGain(),a=AC.currentTime+t;o.type='sine';o.frequency.value=f;o.connect(g);g.connect(AC.destination);g.gain.setValueAtTime(0,a);g.gain.linearRampToValueAtTime(.25,a+.03);g.gain.exponentialRampToValueAtTime(.001,a+.5);o.start(a);o.stop(a+.55)})}catch(e){}}
+const vibra=()=>{try{navigator.vibrate&&navigator.vibrate([200,100,200,100,400])}catch(e){}};
+async function ativarPush(pedir){PMSG='';try{
+ if(IOS&&!STD){PMSG='No iPhone, abra o app pelo ícone da Tela de Início (não pelo Safari). Se ainda não instalou: Compartilhar > Adicionar à Tela de Início.';return false}
+ if(!('serviceWorker'in navigator)||!('PushManager'in window)||!('Notification'in window)){PMSG='Este navegador não suporta avisos com o app fechado.';return false}
+ if(!VAPID){PMSG='Falta a chave de avisos (campo v) no config.js.';return false}
  const reg=await navigator.serviceWorker.register('sw.js');await navigator.serviceWorker.ready;
- if(Notification.permission!='granted'){if(!pedir||await Notification.requestPermission()!='granted')return false}
- let sub=await reg.pushManager.getSubscription();if(!sub){if(!VAPID)return false;sub=await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:v2u(VAPID)})}
- const{error}=await sb.from('push_subs').upsert({endpoint:sub.endpoint,user_id:UID,sub:sub.toJSON()});if(error){if(pedir)alert(error.message);return false}PUSH_OK=true;return true}catch(e){if(pedir)alert('Erro: '+e.message);return false}}
-$('#notif').onclick=async()=>{const ios=/iPad|iPhone|iPod/.test(navigator.userAgent),st=navigator.standalone||matchMedia('(display-mode: standalone)').matches;
- if(ios&&!st){alert('No iPhone: toque em Compartilhar (quadrado com seta) > Adicionar à Tela de Início, abra o app pelo ícone novo e toque aqui de novo.');return}
- alert(await ativarPush(true)?'Avisos ativados! O celular vai tocar mesmo com o app fechado.':'Não foi possível ativar. Permita as notificações deste app nos ajustes do celular.')};
+ if(Notification.permission=='denied'){PMSG='Os avisos estão bloqueados. Libere em Ajustes do celular > Notificações > Secretária.';return false}
+ if(Notification.permission!='granted'){if(!pedir){PMSG='Toque em "Ativar avisos neste aparelho" e escolha Permitir.';return false}if(await Notification.requestPermission()!='granted'){PMSG='A permissão não foi concedida. Toque de novo e escolha Permitir.';return false}}
+ let sub=await reg.pushManager.getSubscription();if(!sub)sub=await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:v2u(VAPID)});
+ const{error}=await sb.from('push_subs').upsert({endpoint:sub.endpoint,user_id:UID,sub:sub.toJSON()});if(error){PMSG='Não consegui registrar este aparelho: '+error.message;return false}
+ PUSH_OK=true;return true}catch(e){PMSG='Erro: '+e.message;return false}}
+async function statusPush(){const e=$('#pst');if(!e)return;const ok=PUSH_OK||await ativarPush(false);
+ e.innerHTML=ok?'✅ <b>Avisos ativos neste aparelho.</b><br><small>O celular avisa na hora marcada, mesmo com o app fechado.</small>':'⚠️ <b>Avisos com o app fechado NÃO estão ativos.</b><br><small>'+esc(PMSG||'Toque em Ativar avisos.')+'</small>'}
+$('#notif').onclick=async()=>{unlock();$('#pst').textContent='Ativando…';await ativarPush(true);await statusPush()};
+$('#tst').onclick=async()=>{unlock();chime();vibra();try{const reg='serviceWorker'in navigator&&await navigator.serviceWorker.getRegistration();if(reg&&Notification.permission=='granted')await reg.showNotification('🔔 Teste de aviso',{body:'Se você viu isto, o aparelho está recebendo os avisos.',tag:'t'+Date.now(),vibrate:[200,100,200,100,400]});else alert('Ative os avisos primeiro.')}catch(e){alert('Erro: '+e.message)}};
 $('#cam').onclick=()=>$('#arq2').click();$('#gal').onclick=()=>$('#arq').click();
 const pegaFoto=async e=>{const f=e.target.files[0];e.target.value='';if(!f)return;const r=$('#res');r.hidden=false;r.textContent='Preparando a foto…';
  const img=await createImageBitmap(f),k=Math.min(1,1600/Math.max(img.width,img.height)),c=document.createElement('canvas');c.width=img.width*k;c.height=img.height*k;c.getContext('2d').drawImage(img,0,0,c.width,c.height);
@@ -119,7 +131,7 @@ $('#sair').onclick=async()=>{await sb.auth.signOut();localStorage.removeItem('no
 let LS=[];
 const fq=q=>new Date(q).toLocaleString('pt-BR',{weekday:'long',day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
 $('#ladd').onclick=async()=>{if(!$('#lt').value||!$('#lq').value)return;const q=new Date($('#lq').value).toISOString(),{error}=await sb.from('lembretes').insert({titulo:$('#lt').value,quando:q,aviso:q});error?alert(error.message):($('#lt').value='',lem())};
-async function lem(){const{data,error}=await sb.from('lembretes').select('*').eq('user_id',UID).eq('feito',false).order('quando');if(error){$('#lout').textContent=error.message;return}LS=data||[];
+async function lem(){statusPush();const{data,error}=await sb.from('lembretes').select('*').eq('user_id',UID).eq('feito',false).order('quando');if(error){$('#lout').textContent=error.message;return}LS=data||[];
  $('#lout').innerHTML=LS.length?LS.map(x=>`<div class="box"><b>${esc(x.titulo)}</b><br><small>${fq(x.quando)}</small>${x.detalhes?`<p>${esc(x.detalhes)}</p>`:''}<div class="row"><button class="s" onclick="edl('${x.id}')">Editar</button><button class="s" onclick="feito('${x.id}')">Feito</button><button class="s" onclick="delL('${x.id}')">Apagar</button></div></div>`).join(''):'<p><small>Nenhum lembrete pendente.</small></p>'}
 async function enviarL(){const{data:{session}}=await sb.auth.getSession(),r=$('#res2');r.hidden=false;r.textContent='Pensando…';
  const{data:ls}=await sb.from('lembretes').select('id,titulo,detalhes,quando,aviso').eq('user_id',UID).eq('feito',false).order('quando');
@@ -141,10 +153,11 @@ async function feito(id){await sb.from('lembretes').update({feito:true}).eq('id'
 function ics(id){const x=LS.find(v=>v.id==id);if(!x)return;const z=q=>new Date(q).toISOString().replace(/[-:]/g,'').slice(0,15)+'Z';
  const t=['BEGIN:VCALENDAR','VERSION:2.0','BEGIN:VEVENT','UID:'+x.id+'@secretaria','DTSTAMP:'+z(Date.now()),'DTSTART:'+z(x.quando),'DTEND:'+z(new Date(x.quando).getTime()+36e5),'SUMMARY:'+x.titulo,'DESCRIPTION:'+(x.detalhes||''),'BEGIN:VALARM','TRIGGER:-PT30M','ACTION:DISPLAY','DESCRIPTION:'+x.titulo,'END:VALARM','END:VEVENT','END:VCALENDAR'].join('\r\n');
  const l=document.createElement('a');l.href=URL.createObjectURL(new Blob([t],{type:'text/calendar'}));l.download='lembrete.ics';l.click()}
-function som(){try{const c=new(window.AudioContext||window.webkitAudioContext)(),o=c.createOscillator(),g=c.createGain();o.connect(g);g.connect(c.destination);o.frequency.value=880;g.gain.value=.3;o.start();o.stop(c.currentTime+.7)}catch(e){}}
+function som(){chime()}
 async function checar(){if(!UID||PUSH_OK)return;const{data=[]}=await sb.from('lembretes').select('*').eq('user_id',UID).eq('feito',false).eq('avisado',false).lte('aviso',new Date().toISOString());
- for(const x of data){await sb.from('lembretes').update({avisado:true}).eq('id',x.id);som();navigator.vibrate&&navigator.vibrate([300,150,300]);const t='🔔 '+x.titulo,c=fq(x.quando)+(x.detalhes?' · '+x.detalhes:'');
-  if('Notification'in window&&Notification.permission=='granted')new Notification(t,{body:c});else alert(t+'\n'+c)}}
+ for(const x of data){await sb.from('lembretes').update({avisado:true}).eq('id',x.id);chime();vibra();const t='🔔 '+x.titulo,c=fq(x.quando)+(x.detalhes?' · '+x.detalhes:'');let ok=false;
+  try{const reg='serviceWorker'in navigator&&await navigator.serviceWorker.getRegistration();if(reg&&Notification.permission=='granted'){await reg.showNotification(t,{body:c,tag:'l'+x.id,vibrate:[200,100,200,100,400]});ok=true}}catch(e){}
+  if(!ok)alert(t+'\n'+c)}}
 $('#abrecfg').onclick=()=>{$('#login').hidden=true;$('#setup').hidden=false;$('#su').value=SUPA_URL;$('#sk').value=SUPA_KEY};
 $('#cfgbtn').onclick=async()=>{const u=lim($('#su').value.trim()),k=$('#sk').value.trim(),p=[$('#p1').value,$('#p2').value],e=$('#cerr');
  if(!u||!k){e.textContent='Cole a URL e a chave.';return}
