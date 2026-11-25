@@ -176,9 +176,11 @@ const at=(d,h)=>new Date(d+'T'+h+':00-03:00').toISOString();
 const dBR=d=>String(d||'').split('-').reverse().join('/');
 const TX={marceneiro:{n:15,e:30,d:120},auxiliar:{n:7.5,e:15,d:81.05}};const taxa=f=>TX[f&&f.funcao]||TX.auxiliar;
 const calcHE=(f,h)=>r2(taxa(f).e*Number(h));const diaFalta=f=>taxa(f).d;
+const BASE={marceneiro:2087,auxiliar:1621.5};const baseF=f=>BASE[f&&f.funcao]||BASE.auxiliar;
+const umTerco=f=>Math.floor(baseF(f)/3*100+1e-6)/100,feriasVal=f=>r2(baseF(f)+umTerco(f));
 function meses13(adm,ano){let ini=1;if(adm){const[a,m,d]=adm.split('-').map(Number);if(a>ano)return 0;if(a==ano){const dm=new Date(a,m,0).getDate();ini=m+((dm-d+1)>=15?0:1)}}return Math.max(0,Math.min(12,13-ini))}
-function d13(f,ano){const meses=meses13(f.admissao,ano),total=r2(Number(f.salario)*meses/12),p1=r2(total/2);return{meses,total,p1,p2:r2(total-p1)}}
-function ferias(f){const base=f.ult_ferias||f.admissao;if(!base)return null;const due=addM(base,12);return{due,valor:r2(Number(f.salario)*4/3),atras:due<hoje()}}
+function d13(f,ano){const meses=meses13(f.admissao,ano),total=r2(baseF(f)*meses/12),p1=r2(total/2);return{meses,total,p1,p2:r2(total-p1)}}
+function ferias(f){const base=f.ult_ferias||f.admissao;if(!base)return null;const due=addM(base,12);return{due,valor:feriasVal(f),atras:due<hoje()}}
 //#/PURE
 let FU=[],PG=[],HE=[],OP=[],pendE=null;
 const achaF=n=>{const k=norm(n);return FU.find(f=>norm(f.nome)==k)||FU.find(f=>norm(f.nome).includes(k)||k.includes(norm(f.nome)))};
@@ -190,7 +192,7 @@ async function eq(){const o=$('#eout');o.textContent='Carregando…';
  try{await carregaEq()}catch(e){o.innerHTML='Erro: '+esc(e.message)+'<br><small>Se disser que a tabela não existe, falta rodar o atualizar.sql no Supabase.</small>';return}
  o.innerHTML=`<div class="box"><small>Folha mensal (salários)</small><div class="big">${brl(sum(FU.map(f=>({valor:f.salario}))))}</div><small>Horas extras pendentes: ${brl(sum(HE))}</small></div>`+(FU.length?FU.map(cardF).join(''):'<p><small>Nenhum funcionário ainda. Toque em "Novo funcionário".</small></p>')}
 function cardF(f){const H=hoje(),ym=H.slice(0,7),ano=H.slice(0,4),sal=Number(f.salario),he=HE.filter(h=>h.func_id==f.id),hv=sum(he),hh=he.reduce((t,h)=>t+Number(h.horas),0),pg=r=>PG.find(p=>p.func_id==f.id&&p.ref==r),ok=r=>pg(r)?' ✅ pago':'',t=d13(f,+ano),fe=ferias(f),hist=PG.filter(p=>p.func_id==f.id);
- return `<div class="box"><div class="ln"><b>${esc(f.nome)}</b><b>${brl(sal)}</b></div><small>${f.funcao=='marceneiro'?'Marceneiro':'Auxiliar'} · hora normal ${brl(taxa(f).n)} · hora extra ${brl(taxa(f).e)}<br>${f.admissao?'Admissão '+dBR(f.admissao):'Sem data de admissão'} · Vale transporte: ${f.vt?brl(f.vt_valor)+' por quinzena':'não recebe'}</small>
+ return `<div class="box"><div class="ln"><b>${esc(f.nome)}</b><b>${brl(sal)}</b></div><small>${f.funcao=='marceneiro'?'Marceneiro':'Auxiliar'} · hora normal ${brl(taxa(f).n)} · hora extra ${brl(taxa(f).e)}<br>Base de férias e 13º: ${brl(baseF(f))}<br>${f.admissao?'Admissão '+dBR(f.admissao):'Sem data de admissão'} · Vale transporte: ${f.vt?brl(f.vt_valor)+' por quinzena':'não recebe'}</small>
  <div class="ln"><span>1ª quinzena (dia 15)${ok('q1-'+ym)}</span><span>${brl(sal/2)}</span></div>
  <div class="ln"><span>2ª quinzena (fim do mês)${ok('q2-'+ym)}</span><span>${brl(sal/2)}</span></div>
  <div class="ln"><span>Horas extras pendentes (${hh.toLocaleString('pt-BR')} h × ${brl(taxa(f).e)})</span><b>${brl(hv)}</b></div>
@@ -201,7 +203,7 @@ function cardF(f){const H=hoje(),ym=H.slice(0,7),ano=H.slice(0,4),sal=Number(f.s
  <details><summary><small>Pagamentos de ${ano}</small></summary>${hist.length?hist.map(p=>`<div class="ln"><span><small>${dBR(p.data)} · ${esc(p.descricao||'')}</small></span><span>${brl(p.valor)}</span></div>`).join(''):'<small>Nenhum ainda.</small>'}${he.map(h=>`<div class="ln"><span><small>${dBR(h.data)} · hora extra ${h.horas}h pendente</small></span><span>${brl(h.valor)} <a href="#" onclick="delHE('${h.id}');return false">🗑</a></span></div>`).join('')}</details></div>`}
 async function delHE(id){if(!confirm('Apagar esta hora extra?'))return;await sb.from('horas_extras').delete().eq('id',id);eq()}
 function pagar(id){const f=FU.find(x=>x.id==id),H=hoje(),ym=H.slice(0,7),ano=H.slice(0,4),sal=Number(f.salario),hv=sum(HE.filter(h=>h.func_id==id)),t=d13(f,+ano),vt=f.vt?Number(f.vt_valor)||0:0;
- OP=[{k:'q1-'+ym,n:'1ª quinzena',v:r2(sal/2),q:1},{k:'q2-'+ym,n:'2ª quinzena',v:r2(sal/2),q:1},{k:'he-'+H,n:'Só horas extras',v:0,q:1},{k:'d1-'+ano,n:'13º salário – 1ª parcela',v:t.p1},{k:'d2-'+ano,n:'13º salário – 2ª parcela',v:t.p2},{k:'f-'+ano,n:'Férias (+1/3)',v:r2(sal*4/3),fer:1},{k:'outro-'+Date.now(),n:'Outro pagamento',v:0}];
+ OP=[{k:'q1-'+ym,n:'1ª quinzena',v:r2(sal/2),q:1},{k:'q2-'+ym,n:'2ª quinzena',v:r2(sal/2),q:1},{k:'he-'+H,n:'Só horas extras',v:0,q:1},{k:'d1-'+ano,n:'13º salário – 1ª parcela',v:t.p1},{k:'d2-'+ano,n:'13º salário – 2ª parcela',v:t.p2},{k:'f-'+ano,n:'Férias (+1/3)',v:feriasVal(f),fer:1},{k:'outro-'+Date.now(),n:'Outro pagamento',v:0}];
  const c=(i,t,x)=>`<small>${t}</small><input id="${i}" type="number" step="0.01" value="${x}">`;
  $('#edbox').innerHTML=`<h3>Pagar ${esc(f.nome)}</h3><select id="p_t">${OP.map((o,i)=>`<option value="${i}">${o.n}</option>`).join('')}</select>${c('p_v','Valor base (quinzena / 13º / férias)',0)}${c('p_he','Hora extra (R$)',hv)}${c('p_vt','Vale transporte (R$)',vt)}${c('p_fd','Dias de falta (desconta '+brl(diaFalta(f))+' por dia)',0)}${c('p_d2','Outros descontos (R$)',0)}<select id="p_f"><option value="pix">Pix</option><option value="dinheiro">Dinheiro</option><option value="debito">Débito</option><option value="boleto">Boleto</option></select><input id="p_d" type="date" value="${H}"><div class="box"><small>Total a pagar</small><div class="big" id="p_tot"></div></div><div class="row"><button class="s" onclick="$('#ed').hidden=true">Cancelar</button><button onclick="salvaP('${id}')">Registrar saída</button></div>`;
  const n=k=>Number($('#p_'+k).value)||0,tot=()=>r2(n('v')+n('he')+n('vt')-n('fd')*diaFalta(f)-n('d2'));
