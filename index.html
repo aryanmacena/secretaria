@@ -57,9 +57,15 @@ nav #sair{min-width:56px;color:#b07a75}
 #fsal>.box{position:relative;overflow:hidden;border-color:#3a3427;background:linear-gradient(165deg,#25221b 0%,#17181a 70%);padding:18px}
 #fsal>.box::before{content:"";position:absolute;inset:0;background:repeating-linear-gradient(176deg,#cfa56b0d 0 1px,transparent 1px 9px);pointer-events:none}
 #fsal>.box>*{position:relative}
-#fsal>.box>small:first-child{font-weight:600;color:#bfae92}
+#fsal>.box.emp .ln:first-child small{color:#bfae92}
+#fsal>.box:not(.emp){border-color:#2b3644;background:linear-gradient(165deg,#1c222b 0%,#17181a 70%)}
+#fsal>.box:not(.emp)::before{background:repeating-linear-gradient(176deg,#7fa6d60b 0 1px,transparent 1px 9px)}
+#fsal>.box:not(.emp) .ln{border-color:#2b3644}
+#fsal .tag{display:inline-block;padding:4px 12px;border-radius:999px;font-size:12.5px;font-weight:800;letter-spacing:.01em}
+#fsal .tag.empresa{background:#cfa56b26;color:var(--br2)}#fsal .tag.casa{background:#7fa6d629;color:#a9c5ea}
+#fsal .row+.ln{border-top:1px solid #3a3427;margin-top:12px;padding-top:12px}
 #fsal .row small{color:#a79c88}
-#fsal .ln{border-color:#3a3427}
+#fsal .ln{border-color:#3a3427}#fsal .ln:first-child{padding-top:0}
 /* detalhes e tabelas */
 details{margin:8px 0}summary{cursor:pointer;color:var(--mt);font-weight:600;padding:8px 0;list-style:none}summary::-webkit-details-marker{display:none}summary::before{content:"+";display:inline-block;width:18px;color:var(--br)}details[open]>summary::before{content:"–"}
 .box table{width:100%;border-collapse:collapse;font-size:13.5px}.box th{color:var(--mt);font-weight:600;text-align:left;padding:6px 4px;border-bottom:1px solid var(--ln)}.box td{padding:9px 4px;border-bottom:1px solid #212429}
@@ -201,9 +207,10 @@ async function fin(){const m=$('#mes').value,ini=m+'-01',d=new Date(ini+'T12:00'
 function por(L,k){const o={};L.forEach(x=>o[x[k]||'—']=(o[x[k]||'—']||0)+Number(x.valor));const e=Object.entries(o).sort((a,b)=>b[1]-a[1]);return e.length?e.map(([a,b])=>`<div class="ln"><span>${esc(a)}</span><b>${brl(b)}</b></div>`).join(''):'<small>Sem dados.</small>'}
 function vista(){document.querySelectorAll('#chips button').forEach(b=>b.classList.toggle('on',b.dataset.v==VW));
  const en=FD.filter(x=>x.tipo=='entrada'),sa=FD.filter(x=>x.tipo=='saida'),sd=sum(en)-sum(sa);
- $('#fsal').innerHTML=`<div class="box"><small>${$('#dia').value?'Saldo do dia '+dBR($('#dia').value):$('#busca').value?'Saldo da busca':'Saldo do mês'}</small><div class="big ${sd>=0?'e':'s2'}">${brl(sd)}</div><div class="row"><div><small>Entradas</small><br><b class="e">${brl(sum(en))}</b></div><div><small>Saídas</small><br><b class="s2">${brl(sum(sa))}</b></div></div></div>`;
- const emp=FD.filter(x=>x.escopo=='empresa'),cx=sum(emp.filter(x=>x.tipo=='entrada'))-sum(emp.filter(x=>x.tipo=='saida'));
- $('#fsal').innerHTML=$('#fsal').innerHTML.replace(/<\/div><\/div>$/,`</div><div class="ln emp"><span>Caixa da empresa</span><b class="${cx>=0?'e':'s2'}">${cx>=0?'no verde':'no vermelho'} ${brl(cx)}</b></div></div>`);
+ const per=$('#dia').value?'Saldo do dia '+dBR($('#dia').value):$('#busca').value?'Saldo da busca':'Saldo do mês';
+ const blk=(nome,k,cl)=>{const l=FD.filter(x=>x.escopo==k),e=sum(l.filter(x=>x.tipo=='entrada')),s2=sum(l.filter(x=>x.tipo=='saida')),sd=e-s2;
+  return `<div class="box ${cl}"><div class="ln"><span class="tag ${k}">${nome}</span><small>${per}</small></div><div class="big ${sd>=0?'e':'s2'}">${brl(sd)}</div><div class="row"><div><small>Entradas</small><br><b class="e">${brl(e)}</b></div><div><small>Saídas</small><br><b class="s2">${brl(s2)}</b></div></div>${k=='empresa'?`<div class="ln"><span>Caixa da empresa</span><b class="${sd>=0?'e':'s2'}">${sd>=0?'no verde':'no vermelho'}</b></div>`:''}</div>`};
+ $('#fsal').innerHTML=(MAE?'':blk('Empresa','empresa','emp'))+blk('Casa','casa','');
  if(['semana','ano','contador'].includes(VW))return especial();
  let L=FD,h='';
  if(VW=='resumo'){for(const k of(MAE?['casa']:['empresa','casa'])){const l=FD.filter(x=>x.escopo==k),e=sum(l.filter(x=>x.tipo=='entrada')),sx=sum(l.filter(x=>x.tipo=='saida'));
@@ -405,5 +412,12 @@ if(STD||/Android/i.test(navigator.userAgent)){let armado=false,SAINDO=false;cons
  addEventListener('popstate',()=>{if(SAINDO)return;if(!armado){armado=true}$('#sx').hidden=false;arma()});
  $('#sfica').onclick=()=>{$('#sx').hidden=true};
  $('#ssai').onclick=()=>{SAINDO=true;$('#sx').hidden=true;history.go(-2);setTimeout(()=>{try{window.close()}catch(e){}},400)}}
+// Tela sempre ligada enquanto o app está aberto
+let WL=null,NV=null;
+async function tela(){try{if('wakeLock'in navigator){if(!WL){WL=await navigator.wakeLock.request('screen');WL.addEventListener('release',()=>{WL=null})}return}}catch(e){WL=null}
+ try{if(!NV){NV=document.createElement('video');NV.setAttribute('playsinline','');NV.muted=true;NV.loop=true;NV.style.cssText='position:fixed;left:0;top:0;width:1px;height:1px;opacity:.01;pointer-events:none';
+  for(const[t,d]of[['video/webm','GkXfo59ChoEBQveBAULygQRC84EIQoKEd2VibUKHgQJChYECGFOAZwEAAAAAAAJKEU2bdLpNu4tTq4QVSalmU6yBoU27i1OrhBZUrmtTrIHYTbuMU6uEElTDZ1OsggEeTbuMU6uEHFO7a1OsggI07AEAAAAAAABZAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAVSalmsirXsYMPQkBNgI1MYXZmNjAuMTYuMTAwV0GNTGF2ZjYwLjE2LjEwMESJiECPQAAAAAAAFlSua8GuAQAAAAAAADjXgQFzxYidKbEJ3ILRQJyBACK1nIN1bmSIgQCGhVZfVlA4g4EBI+ODhAvrwgDgibCBQLqBQJqBAhJUw2f8c3OgY8CAZ8iaRaOHRU5DT0RFUkSHjUxhdmY2MC4xNi4xMDBzc9ZjwItjxYidKbEJ3ILRQGfIoUWjh0VOQ09ERVJEh5RMYXZjNjAuMzEuMTAyIGxpYnZweGfIoUWjiERVUkFUSU9ORIeTMDA6MDA6MDEuMDAwMDAwMDAwAB9DtnVAj+eBAKOqgQAAgPACAJ0BKkAAQAAARwiFhYiFhIgCAgAGcDxCYAqyIPcwAP7/q1CAo5aBAMgA0QEABRCsABgAGFgv9AAIjoAAo5aBAZAA0QEABRCsABgAGFgv9AAIjoAAo5aBAlgA0QEABRCsABgAGFgv9AAIjoAAo5aBAyAA0QEABRCsABgAGFgv9AAIjoAAHFO7a5G7j7OBALeK94EB8YIBn/CBAw=='],['video/mp4','AAAAIGZ0eXBpc29tAAACAGlzb21pc28yYXZjMW1wNDEAAAN0bW9vdgAAAGxtdmhkAAAAAAAAAAAAAAAAAAAD6AAAA+gAAQAAAQAAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgAAAp50cmFrAAAAXHRraGQAAAADAAAAAAAAAAAAAAABAAAAAAAAA+gAAAAAAAAAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAAAABAAAAAAEAAAABAAAAAAAAkZWR0cwAAABxlbHN0AAAAAAAAAAEAAAPoAAAQAAABAAAAAAIWbWRpYQAAACBtZGhkAAAAAAAAAAAAAAAAAAAoAAAAKABVxAAAAAAALWhkbHIAAAAAAAAAAHZpZGUAAAAAAAAAAAAAAABWaWRlb0hhbmRsZXIAAAABwW1pbmYAAAAUdm1oZAAAAAEAAAAAAAAAAAAAACRkaW5mAAAAHGRyZWYAAAAAAAAAAQAAAAx1cmwgAAAAAQAAAYFzdGJsAAAAvXN0c2QAAAAAAAAAAQAAAK1hdmMxAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAAAAEAAQABIAAAASAAAAAAAAAABFUxhdmM2MC4zMS4xMDIgbGlieDI2NAAAAAAAAAAAAAAAGP//AAAAM2F2Y0MBZAAK/+EAGGdkAAqs2UQmwEQAAAMABAAAAwAoPEiWWAEABGjvvLD9+PgAAAAAEHBhc3AAAAABAAAAAQAAABRidHJ0AAAAAAAAGLAAABiwAAAAGHN0dHMAAAAAAAAAAQAAAAUAAAgAAAAAFHN0c3MAAAAAAAAAAQAAAAEAAAA4Y3R0cwAAAAAAAAAFAAAAAQAAEAAAAAABAAAoAAAAAAEAABAAAAAAAQAAAAAAAAABAAAIAAAAABxzdHNjAAAAAAAAAAEAAAABAAAABQAAAAEAAAAoc3RzegAAAAAAAAAAAAAABQAAAuQAAAAOAAAADAAAAAwAAAAMAAAAFHN0Y28AAAAAAAAAAQAAA6QAAABidWR0YQAAAFptZXRhAAAAAAAAACFoZGxyAAAAAAAAAABtZGlyYXBwbAAAAAAAAAAAAAAAAC1pbHN0AAAAJal0b28AAAAdZGF0YQAAAAEAAAAATGF2ZjYwLjE2LjEwMAAAAAhmcmVlAAADHm1kYXQAAAK3BgX//7PcRem95tlIt5Ys2CDZI+7veDI2NCAtIGNvcmUgMTY0IHIzMTA4IDMxZTE5ZjkgLSBILjI2NC9NUEVHLTQgQVZDIGNvZGVjIC0gQ29weWxlZnQgMjAwMy0yMDIzIC0gaHR0cDovL3d3dy52aWRlb2xhbi5vcmcveDI2NC5odG1sIC0gb3B0aW9uczogY2FiYWM9MSByZWY9MSBkZWJsb2NrPTE6MDowIGFuYWx5c2U9MHgzOjB4MyBtZT1oZXggc3VibWU9MiBwc3k9MSBwc3lfcmQ9MS4wMDowLjAwIG1peGVkX3JlZj0wIG1lX3JhbmdlPTE2IGNocm9tYV9tZT0xIHRyZWxsaXM9MCA4eDhkY3Q9MSBjcW09MCBkZWFkem9uZT0yMSwxMSBmYXN0X3Bza2lwPTEgY2hyb21hX3FwX29mZnNldD0wIHRocmVhZHM9MiBsb29rYWhlYWRfdGhyZWFkcz0xIHNsaWNlZF90aHJlYWRzPTAgbnI9MCBkZWNpbWF0ZT0xIGludGVybGFjZWQ9MCBibHVyYXlfY29tcGF0PTAgc3RpdGNoYWJsZT0xIGNvbnN0cmFpbmVkX2ludHJhPTAgYmZyYW1lcz0zIGJfcHlyYW1pZD0yIGJfYWRhcHQ9MSBiX2JpYXM9MCBkaXJlY3Q9MSB3ZWlnaHRiPTEgb3Blbl9nb3A9MCB3ZWlnaHRwPTEga2V5aW50PTI1MCBrZXlpbnRfbWluPTUgc2NlbmVjdXQ9NDAgaW50cmFfcmVmcmVzaD0wIHJjX2xvb2thaGVhZD0xMCByYz1jcmYgbWJ0cmVlPTEgY3JmPTIzLjAgcWNvbXA9MC42MCBxcG1pbj0wIHFwbWF4PTY5IHFwc3RlcD00IGlwX3JhdGlvPTEuNDAgYXE9MToxLjAwAIAAAAAlZYiEABX/5P8F4P70O193s/77x35plUJ12Qa00/EQ8mLEiG0B5wAAAApBmiQYgl/+qZ00AAAACEGeQkIJ/wLHAAAACAGeYUQS/wTEAAAACAGeY0QS/wTF']]){const o=document.createElement('source');o.type=t;o.src='data:'+t+';base64,'+d;NV.appendChild(o)}document.body.appendChild(NV)}await NV.play()}catch(e){}}
+['touchstart','click'].forEach(ev=>document.addEventListener(ev,tela,{passive:true}));
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState=='visible')tela()});tela();
 boot();
 </script></body></html>
