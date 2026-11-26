@@ -62,8 +62,22 @@ $('#pw').onkeydown=e=>{if(e.key=='Enter')$('#entrar').click()};
 function aba(n){PFM=false;document.querySelectorAll('nav button[data-a]').forEach(b=>b.classList.toggle('on',b.dataset.a==n));document.querySelectorAll('section').forEach(s=>s.hidden=s.id!=n);if(n=='fin')fin();if(n=='lem')lem();if(n=='eq')eq()}
 document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>aba(b.dataset.a));
 $('#mes').onchange=()=>{$('#dia').value='';fin()};
-function mic(tx,bx,fn){const R=window.SpeechRecognition||window.webkitSpeechRecognition,r=$(bx);r.hidden=false;if(!R){r.textContent='Este navegador não tem ditado por voz. Use o Chrome (Android) ou o Safari (iPhone), ou o microfone do teclado.';return}
- const x=new R();x.lang='pt-BR';x.onstart=()=>r.textContent='🎤 Ouvindo… fale agora';x.onerror=e=>r.textContent='Microfone: '+(e.error=='not-allowed'?'permita o microfone no navegador.':e.error);x.onresult=e=>{$(tx).value=e.results[0][0].transcript;fn()};x.start()}
+let MICX=null,QP={'#txt':false,'#lt2':false};
+function mic(tx,bx,fn){const R=window.SpeechRecognition||window.webkitSpeechRecognition,r=$(bx);r.hidden=false;
+ if(!R){r.textContent='Este navegador não tem ditado por voz. Use o Chrome (Android) ou o Safari (iPhone), ou o microfone do teclado.';return}
+ if(MICX){MICX.parar();return}
+ const base=QP[tx]?($(tx).value||'').trim():'';let prev='',cur='',ativo=true,timer=null,x=null;
+ const todo=()=>(prev+' '+cur).replace(/\s+/g,' ').trim(),mostra=()=>{$(tx).value=(base?base+'. ':'')+todo()};
+ const fim=()=>{if(!ativo)return;ativo=false;clearTimeout(timer);MICX=null;try{x.stop()}catch(e){}
+  if(todo()){mostra();fn()}else r.textContent='Não ouvi nada. Toque em Falar e tente de novo.'};
+ const espera=ms=>{clearTimeout(timer);timer=setTimeout(fim,ms)};
+ const abre=()=>{x=new R();x.lang='pt-BR';x.continuous=true;x.interimResults=true;
+  x.onstart=()=>{r.textContent='🎤 Ouvindo… fale com calma, pode pausar. Toque em Falar de novo quando terminar.'};
+  x.onerror=e=>{if(e.error=='no-speech'||e.error=='aborted')return;ativo=false;clearTimeout(timer);MICX=null;r.textContent='Microfone: '+(e.error=='not-allowed'?'permita o microfone no navegador.':e.error)};
+  x.onresult=e=>{cur=Array.from(e.results).map(q=>q[0].transcript).join(' ');mostra();espera(4500)};
+  x.onend=()=>{if(!ativo)return;prev=todo();cur='';try{abre()}catch(e){fim()}};
+  x.start()};
+ MICX={parar:fim};espera(9000);try{abre()}catch(e){r.textContent='Microfone: '+e.message;ativo=false;MICX=null}}
 $('#mic').onclick=()=>mic('#txt','#res',enviar);$('#mic2').onclick=()=>mic('#lt2','#res2',enviarL);$('#env2').onclick=enviarL;
 const v2u=b=>{const a=atob((b+'='.repeat((4-b.length%4)%4)).replace(/-/g,'+').replace(/_/g,'/'));return Uint8Array.from([...a].map(c=>c.charCodeAt(0)))};
 let PMSG='',AC=null;
@@ -96,7 +110,7 @@ $('#env').onclick=enviar;
 async function enviar(){const{data:{session}}=await sb.auth.getSession();const r=$('#res');r.hidden=false;r.textContent='Pensando…';
  try{const{data,error}=await sb.functions.invoke('ia',{body:{texto:$('#txt').value,imagem:fotoB64,mime:fotoMime,quem:localStorage.nome,soCasa:MAE}});if(error)throw error;mostrar(data)}catch(e){r.textContent='Erro: '+e.message}}
 function resp(x){$('#txt').value=($('#txt').value+' '+x+'.').trim();enviar()}
-function mostrar(j){pend=j;const r=$('#res');if(j.acao=='pergunta'){const q=/empresa ou .*casa|casa ou .*empresa/i.test(j.pergunta);r.innerHTML=j.pergunta+(q?'<div class="row"><button onclick="resp(\'empresa\')">Empresa</button><button onclick="resp(\'casa\')">Casa</button></div>':' <small>(complete no campo acima e envie de novo)</small>');return}
+function mostrar(j){pend=j;QP['#txt']=j.acao=='pergunta';const r=$('#res');if(j.acao=='pergunta'){const q=/empresa ou .*casa|casa ou .*empresa/i.test(j.pergunta);r.innerHTML=j.pergunta+(q?'<div class="row"><button onclick="resp(\'empresa\')">Empresa</button><button onclick="resp(\'casa\')">Casa</button></div>':' <small>Toque em 🎤 Falar e responda: o que você já disse fica guardado.</small>');return}
  r.innerHTML=(j.acao=='lembrete'?`🔔 ${j.titulo}<br><small>${new Date(j.quando).toLocaleString('pt-BR')}</small>`:`<b class="${j.tipo=='entrada'?'e':'s2'}">${j.tipo=='entrada'?'Entrada':'Saída'} ${brl(j.valor)}</b><br>${j.escopo} · ${j.categoria||''} · ${j.loja||''} · ${j.forma||''}<br><small>${j.pessoa} · ${j.data}</small>`)+'<button id="ok">Confirmar</button>';
  $('#ok').onclick=salvar}
 async function salvar(){const j=pend;let er;
@@ -106,7 +120,7 @@ async function salvar(){const j=pend;let er;
  l.tipo=/entr/.test(sem(l.tipo))?'entrada':'saida';l.escopo=(MAE||/casa|pess/.test(sem(l.escopo)))?'casa':'empresa';l.forma=sem(l.forma);l.valor=Number(String(l.valor).replace(',','.'))||0;
  if(!/^\d{4}-\d{2}-\d{2}$/.test(l.data||''))l.data=new Date(Date.now()-3*36e5).toISOString().slice(0,10);
  l.nota=foto;if(funcionario||l.categoria=='funcionarios'){try{await carregaEq();const f=achaF(funcionario||l.loja||'');if(f){l.func_id=f.id;l.loja=f.nome}}catch(e){}}$('#mes').value=l.data.slice(0,7);({error:er}=await sb.from('lancamentos').insert(l))}
- if(er)return alert(er.message);$('#res').textContent='Salvo ✔ Veja na aba Financeiro.';$('#txt').value='';foto=fotoB64=null;pend=null}
+ if(er)return alert(er.message);$('#res').textContent='Salvo ✔ Veja na aba Financeiro.';$('#txt').value='';QP['#txt']=false;foto=fotoB64=null;pend=null}
 let FD=[],VW='resumo';
 const esc=t=>String(t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const sum=L=>L.reduce((t,x)=>t+Number(x.valor||0),0);
@@ -150,8 +164,8 @@ async function lem(){statusPush();const{data,error}=await sb.from('lembretes').s
 async function enviarL(){const{data:{session}}=await sb.auth.getSession(),r=$('#res2');r.hidden=false;r.textContent='Pensando…';
  const{data:ls}=await sb.from('lembretes').select('id,titulo,detalhes,quando,aviso').eq('user_id',UID).eq('feito',false).order('quando');
  try{const{data,error}=await sb.functions.invoke('ia',{body:{texto:$('#lt2').value,quem:localStorage.nome,modo:'agenda',lembretes:ls||[]}});if(error)throw error;aplicar(data,ls||[])}catch(e){r.textContent='Erro: '+e.message}}
-async function aplicar(j,ls){const r=$('#res2');let er;const av=(q,m)=>new Date(new Date(q)-(Number(m)||0)*6e4).toISOString();
- if(j.acao=='pergunta'){r.textContent=j.pergunta;return}
+async function aplicar(j,ls){const r=$('#res2');let er;QP['#lt2']=j.acao=='pergunta';const av=(q,m)=>new Date(new Date(q)-(Number(m)||0)*6e4).toISOString();
+ if(j.acao=='pergunta'){r.textContent=j.pergunta+' (toque em 🎤 Falar e responda: o que você já disse fica guardado)';return}
  if(j.acao=='lembrete'){({error:er}=await sb.from('lembretes').insert({titulo:j.titulo,detalhes:j.detalhes||null,quando:j.quando,aviso:av(j.quando,j.aviso_min)}));r.innerHTML=er?er.message:`✅ Anotado: <b>${esc(j.titulo)}</b><br><small>${fq(j.quando)}${j.detalhes?' · '+esc(j.detalhes):''}</small>`}
  else if(j.acao=='editar_lembrete'||j.acao=='apagar_lembrete'){const o=ls.find(v=>v.id==j.id);if(!o){r.textContent='Não achei esse lembrete. Diga o nome ou o dia dele.';return}
   if(j.acao=='apagar_lembrete'){({error:er}=await sb.from('lembretes').delete().eq('id',o.id));r.innerHTML=er?er.message:`🗑️ Apagado: <b>${esc(o.titulo)}</b>`}
