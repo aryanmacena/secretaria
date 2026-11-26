@@ -13,6 +13,7 @@ nav{position:sticky;top:0;z-index:5;display:grid;grid-template-columns:repeat(4,
 .chips{display:flex;gap:6px;overflow-x:auto;margin:8px 0}.chips button{width:auto;white-space:nowrap;background:var(--a);color:var(--b);border:1px solid #555;padding:8px 14px;border-radius:20px}.chips button.on{background:var(--w);color:#111;border-color:var(--w)}
 #mes{flex:3}#ed{position:fixed;inset:0;background:#000d;z-index:20;overflow:auto;padding:14px}#ed[hidden]{display:none}#sair{opacity:.6}
 .e{color:var(--g)}.s2{color:var(--r)}small{opacity:.7}
+#sx{position:fixed;inset:0;background:#000d;z-index:30;display:flex;align-items:center;justify-content:center;padding:20px}#sx[hidden]{display:none}
 body.mae [data-a=lem],body.mae [data-a=eq],body.mae [data-v=empresa],body.mae [data-v=casa],body.mae [data-v=contador],body.mae #pgf,body.mae .emp,body.mae #e_escopo{display:none!important}body.mae nav{grid-template-columns:repeat(2,1fr) auto}
 </style></head><body><nav id="nav" hidden><button data-a="lancar"><i>💸</i>Entradas e saídas</button><button data-a="fin"><i>💰</i>Financeiro</button><button data-a="lem"><i>🔔</i>Lembretes</button><button data-a="eq"><i>👷</i>Equipe</button><button id="sair"><i>🚪</i>Sair</button></nav><main>
 <div id="login"><h2>Secretária</h2><input id="pw" type="password" placeholder="Digite sua senha"><button id="entrar">Entrar</button><p id="lerr" class="s2"></p><button class="s" id="prim">🔑 Primeiro acesso / criar minha senha</button><div id="primbox" hidden><select id="quem"><option value="0">Aryan</option><option value="1">Adão</option></select><button id="enviar">Enviar e-mail para criar senha</button></div><button class="s" id="abrecfg">⚙️ Configurar</button></div>
@@ -33,7 +34,7 @@ body.mae [data-a=lem],body.mae [data-a=eq],body.mae [data-v=empresa],body.mae [d
 <details><summary>Adicionar manualmente</summary><input id="lt" placeholder="O que lembrar?"><input id="lq" type="datetime-local"><button id="ladd">Salvar lembrete</button></details></section>
 <section id="eq" hidden><h2>Equipe</h2>
 <button class="s" id="fnovo">+ Novo funcionário</button><div id="eout"></div></section>
-</div></main><div id="ed" hidden><div class="box" id="edbox" style="max-width:640px;margin:auto"></div></div>
+</div></main><div id="sx" hidden><div class="box" style="max-width:360px;width:100%;text-align:center"><h3>Deseja sair do app?</h3><div class="row"><button id="sfica">Ficar no app</button><button class="s" id="ssai">Sair do app</button></div></div></div><div id="ed" hidden><div class="box" id="edbox" style="max-width:640px;margin:auto"></div></div>
 
 <script src="config.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
@@ -329,5 +330,12 @@ $('#enviar').onclick=async()=>{const u=USERS[$('#quem').value];$('#lerr').textCo
 $('#salvasenha').onclick=async()=>{const p=$('#np').value;if(p.length<6){$('#nerr').textContent='Mínimo 6 caracteres.';return}const{error}=await sb.auth.updateUser({password:p});if(error){$('#nerr').textContent=error.message;return}REC=false;history.replaceState(null,'',location.pathname);$('#nova').hidden=true;init()};
 async function boot(){const c=window.CFG||{},u=lim(c.u);VAPID=c.v||'';if(u&&c.k){SUPA_URL=u;SUPA_KEY=c.k;localStorage.su=u;localStorage.sk=c.k}
  sb=(SUPA_URL&&SUPA_KEY)?supabase.createClient(SUPA_URL,SUPA_KEY):null;init()}
+// Botão "voltar" do Android: pede confirmação antes de sair do app
+if(STD||/Android/i.test(navigator.userAgent)){let armado=false,SAINDO=false;const arma=()=>{try{history.pushState({s:1},'')}catch(e){}};
+ const primeiro=()=>{if(armado)return;armado=true;arma();document.removeEventListener('touchstart',primeiro);document.removeEventListener('click',primeiro)};
+ document.addEventListener('touchstart',primeiro,{passive:true});document.addEventListener('click',primeiro);
+ addEventListener('popstate',()=>{if(SAINDO)return;if(!armado){armado=true}$('#sx').hidden=false;arma()});
+ $('#sfica').onclick=()=>{$('#sx').hidden=true};
+ $('#ssai').onclick=()=>{SAINDO=true;$('#sx').hidden=true;history.go(-2);setTimeout(()=>{try{window.close()}catch(e){}},400)}}
 boot();
 </script></body></html>
