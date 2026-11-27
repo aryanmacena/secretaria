@@ -54,15 +54,19 @@ nav #sair{min-width:56px;color:#b07a75}
 #mes{flex:3;text-align:center;font-weight:700}
 #mm,#mp{font-size:20px;color:var(--tx)}
 /* saldo do mês: o destaque da tela */
-#fsal>.box{position:relative;overflow:hidden;border-color:#4d2c1c;background:linear-gradient(165deg,#2d1a11 0%,#17181a 70%);padding:18px}
-#fsal>.box::before{content:"";position:absolute;inset:0;background:repeating-linear-gradient(176deg,#e8742f0d 0 1px,transparent 1px 9px);pointer-events:none}
-#fsal>.box>*{position:relative}
-#fsal>.box.emp .ln:first-child small{color:#d9b9a4}
-#fsal>.box:not(.emp){border-color:#34363b;background:linear-gradient(165deg,#212226 0%,#17181a 70%)}
-#fsal>.box:not(.emp)::before{background:repeating-linear-gradient(176deg,#ffffff08 0 1px,transparent 1px 9px)}
-#fsal>.box:not(.emp) .ln{border-color:#34363b}
+#fsal .box{position:relative;overflow:hidden;border-color:#4d2c1c;background:linear-gradient(165deg,#2d1a11 0%,#17181a 70%);padding:18px}
+#fsal .box::before{content:"";position:absolute;inset:0;background:repeating-linear-gradient(176deg,#e8742f0d 0 1px,transparent 1px 9px);pointer-events:none}
+#fsal .box>*{position:relative}
+#fsal .box.emp .ln:first-child small{color:#d9b9a4}
+#fsal .box:not(.emp){border-color:#34363b;background:linear-gradient(165deg,#212226 0%,#17181a 70%)}
+#fsal .box:not(.emp)::before{background:repeating-linear-gradient(176deg,#ffffff08 0 1px,transparent 1px 9px)}
+#fsal .box:not(.emp) .ln{border-color:#34363b}
+#fsal .duo{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}#fsal .duo>.box{margin:0;padding:14px 12px;min-width:0}
+#fsal .duo .ln:first-child{flex-direction:column;align-items:flex-start;gap:5px}#fsal .duo .tag{padding:3px 9px;font-size:11.5px}#fsal .duo .ln:first-child small{font-size:11px}
+#fsal .duo .big{font-size:27px;margin:8px 0 10px;overflow-wrap:anywhere}#fsal .duo .row{flex-direction:column;gap:6px}#fsal .duo .row small{font-size:11px}#fsal .duo .row b{font-size:14px}
+#fsal .duo .ln{font-size:12.5px;gap:6px}#fsal .duo .ln span{min-width:0;overflow-wrap:anywhere}#fsal .duo .row+.ln{margin-top:10px;padding-top:10px}
 #fsal .tag{display:inline-block;padding:4px 12px;border-radius:999px;font-size:12.5px;font-weight:800;letter-spacing:.01em}
-#fsal>.box.cr{border-color:#4a3a2e;background:linear-gradient(165deg,#241d17 0%,#17181a 72%)}#fsal>.box.cr .ln{border-color:#4a3a2e}#fsal .tag.cred{background:#ffffff1a;color:#f3d9c6}#fsal .tag.empresa{background:#e8742f26;color:var(--br2)}#fsal .tag.casa{background:#ffffff1a;color:#e6e6e8}
+#fsal .box.cr{border-color:#4a3a2e;background:linear-gradient(165deg,#241d17 0%,#17181a 72%)}#fsal .box.cr .ln{border-color:#4a3a2e}#fsal .tag.cred{background:#ffffff1a;color:#f3d9c6}#fsal .tag.empresa{background:#e8742f26;color:var(--br2)}#fsal .tag.casa{background:#ffffff1a;color:#e6e6e8}
 #fsal .row+.ln{border-top:1px solid #4d2c1c;margin-top:12px;padding-top:12px}
 #fsal .row small{color:#c9a994}
 #fsal .ln{border-color:#4d2c1c}#fsal .ln:first-child{padding-top:0}
@@ -242,7 +246,7 @@ function vista(){document.querySelectorAll('#chips button').forEach(b=>b.classLi
  const per=$('#dia').value?'Saldo do dia '+dBR($('#dia').value):$('#busca').value?'Saldo da busca':'Saldo do mês';
  const blk=(nome,k,cl)=>{const l=FD.filter(x=>x.escopo==k&&!(k=='empresa'&&x.caixa=='credito')),e=sum(l.filter(x=>x.tipo=='entrada'&&x.categoria!='saldo_inicial')),si=sum(l.filter(x=>x.categoria=='saldo_inicial')),s2=sum(l.filter(x=>x.tipo=='saida')),sd=e+si-s2;
   return `<div class="box ${cl}"><div class="ln"><span class="tag ${k}">${nome}</span><small>${per}</small></div><div class="big ${sd>=0?'e':'s2'}">${brl(sd)}</div><div class="row"><div><small>Entradas</small><br><b class="e">${brl(e)}</b></div><div><small>Saídas</small><br><b class="s2">${brl(s2)}</b></div></div>${si?`<div class="ln"><span>Saldo inicial</span><b>${brl(si)}</b></div>`:''}${k=='empresa'?`<div class="ln"><span>Caixa da empresa</span><b class="${sd>=0?'e':'s2'}">${sd>=0?'no verde':'no vermelho'}</b></div>`:''}</div>`};
- $('#fsal').innerHTML=(MAE?'':blk('Empresa · caixa','empresa','emp')+credBox())+blk('Casa','casa','');
+ $('#fsal').innerHTML=(MAE?'':'<div class="duo">'+blk('Empresa · caixa','empresa','emp')+credBox()+'</div>')+blk('Casa','casa','');
  if(['semana','ano','contador'].includes(VW))return especial();
  let L=FD,h='';
  if(VW=='resumo'){for(const k of(MAE?['casa']:['empresa','casa'])){const l=FD.filter(x=>x.escopo==k&&!(k=='empresa'&&x.caixa=='credito')),e=sum(l.filter(x=>x.tipo=='entrada'&&x.categoria!='saldo_inicial')),si=sum(l.filter(x=>x.categoria=='saldo_inicial')),sx=sum(l.filter(x=>x.tipo=='saida'));
@@ -592,9 +596,12 @@ async function baixaXL(){const b=$('#xlb'),t=b.textContent;b.disabled=true;b.tex
  catch(e){alert('Não consegui gerar a planilha: '+e.message);b.textContent=t}
  b.disabled=false;setTimeout(()=>{b.textContent=t},3000)}
 
-function saldoIni(){$('#edbox').innerHTML=`<h3>Saldo inicial</h3><small>Dinheiro que já existia antes de usar o app. Entra no caixa, mas não conta como faturamento nem no DAS.</small><input id="si_v" type="text" inputmode="decimal" data-m placeholder="Valor (R$)"><input id="si_l" placeholder="Onde está (ex.: Conta Itaú, dinheiro em caixa)">${MAE?'':'<select id="si_e"><option value="empresa">Empresa</option><option value="casa">Casa / pessoal</option></select>'}<small>Data</small><input id="si_d" type="date" value="${hoje()}"><div class="row"><button class="s" onclick="$('#ed').hidden=true">Cancelar</button><button onclick="salvaSI()">Salvar saldo inicial</button></div>`;$('#ed').hidden=false}
-async function salvaSI(){const v=Number($('#si_v').value)||0;if(v<=0)return alert('Informe o valor.');const l=$('#si_l').value.trim(),e=MAE?'casa':$('#si_e').value;
- const{error}=await sb.from('lancamentos').insert({tipo:'entrada',valor:v,escopo:e,categoria:'saldo_inicial',descricao:'Saldo inicial'+(l?' – '+l:''),loja:l||'Saldo inicial',forma:'',pessoa:localStorage.nome||'',data:$('#si_d').value||hoje()});
+function saldoIni(){$('#edbox').innerHTML=`<h3>Saldo inicial</h3><small>Dinheiro que já existia antes de usar o app. Entra no caixa, mas não conta como faturamento nem no DAS.</small><input id="si_v" type="text" inputmode="decimal" data-m placeholder="Valor (R$)">${MAE?'':'<select id="si_e" onchange="siOnde()"><option value="empresa">Empresa</option><option value="casa">Casa / pessoal</option></select>'}<small>Onde está esse dinheiro</small><select id="si_o" onchange="siOnde()"><option value="conta">Conta da empresa</option><option value="especie">Espécie (dinheiro)</option><option value="credito">Crédito em loja</option></select><input id="si_l" placeholder="Observação"><small>Data</small><input id="si_d" type="date" value="${hoje()}"><div class="row"><button class="s" onclick="$('#ed').hidden=true">Cancelar</button><button onclick="salvaSI()">Salvar saldo inicial</button></div>`;siOnde();$('#ed').hidden=false}
+function siOnde(){const o=$('#si_o'),e=MAE?'casa':$('#si_e').value,c=o.querySelector('[value=credito]');c.disabled=e=='casa';if(e=='casa'&&o.value=='credito')o.value='conta';const v=o.value;o.options[0].textContent=e=='casa'?'Conta bancária':'Conta da empresa';$('#si_l').placeholder=v=='credito'?'Qual loja? (obrigatório)':v=='conta'?'Observação (ex.: qual banco)':'Observação (opcional)'}
+async function salvaSI(){const v=Number($('#si_v').value)||0;if(v<=0)return alert('Informe o valor.');const l=$('#si_l').value.trim(),e=MAE?'casa':$('#si_e').value,o=$('#si_o').value,cr=o=='credito'&&e=='empresa';if(cr&&!l)return alert('Informe qual é a loja.');const on={conta:e=='casa'?'Conta bancária':'Conta da empresa',especie:'Espécie',credito:'Crédito em loja'}[o];
+ const rw={tipo:'entrada',valor:v,escopo:e,categoria:'saldo_inicial',descricao:'Saldo inicial – '+on+(l?' – '+l:''),loja:l||on,forma:o=='especie'?'dinheiro':o=='conta'?'conta':'',pessoa:localStorage.nome||'',data:$('#si_d').value||hoje()};if(cr){rw.caixa='credito';rw.cred_loja=l}
+ const{error}=await sb.from('lancamentos').insert(rw);
+ //pessoa:localStorage.nome||'',data:$('#si_d').value||hoje()});
  if(error)return alert(error.message);$('#ed').hidden=true;$('#mes').value=($('#si_d').value||hoje()).slice(0,7);const r=$('#res');r.hidden=false;r.textContent='Saldo inicial registrado. Veja no Financeiro.'}
 $('#sinb').onclick=saldoIni;
 $('#abrecfg').onclick=()=>{$('#login').hidden=true;$('#setup').hidden=false;$('#su').value=SUPA_URL;$('#sk').value=SUPA_KEY};
